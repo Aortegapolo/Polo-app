@@ -253,6 +253,47 @@
     flex-shrink: 0;
   }
 
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 6px; }
+  .filter-label-sm { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+  .filter-input {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 6px 10px;
+    outline: none;
+    cursor: pointer;
+  }
+  .filter-input:focus { border-color: var(--red); }
+  .filter-clear {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-clear:hover { border-color: var(--red); color: var(--red); }
+  .filter-info-sm { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; align-self: center; }
+
   /* NO DATA */
   .no-data {
     display: flex;
@@ -422,6 +463,20 @@
 
 <div id="main">
 
+  <!-- FILTROS -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <div class="filter-label-sm">Desde</div>
+      <input type="date" class="filter-input" id="filter-from" oninput="onFilterRange()">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label-sm">Hasta</div>
+      <input type="date" class="filter-input" id="filter-to" oninput="onFilterRange()">
+    </div>
+    <button class="filter-clear" onclick="clearFilters()">✕ LIMPIAR</button>
+    <span class="filter-info-sm" id="filter-info"></span>
+  </div>
+
   <!-- KPIs -->
   <div class="kpi-grid">
     <div class="kpi-card blue">
@@ -510,7 +565,10 @@
 
 <script>
 // ─── ESTADO ───────────────────────────────────────────────────
-let DATA = [];
+let RAW_DATA    = [];
+let DATA        = [];   // subconjunto filtrado que usan todos los renders
+let filterFrom  = '';
+let filterTo    = '';
 
 // ─── COLORES CATEGORÍAS ───────────────────────────────────────
 const CAT_COLORS = {
@@ -556,8 +614,10 @@ function parseJSON(data) {
     rows.push({ id, creado, espera, area, categoria, responsable, asunto, socio, respuesta, estado, dateObj });
   });
 
-  DATA = rows;
-  initDashboard();
+  const isFirst = RAW_DATA.length === 0;
+  RAW_DATA = rows;
+  applyFilter();
+  if (isFirst) initDashboard(); else refreshRender();
 }
 
 // ─── CARGA DESDE API ──────────────────────────────────────────
@@ -577,26 +637,60 @@ function loadData() {
 loadData();
 setInterval(loadData, 5 * 60 * 1000);
 
-// ─── INIT ─────────────────────────────────────────────────────
-function initDashboard() {
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('main').style.display = 'block';
+// ─── FILTRADO ─────────────────────────────────────────────────
+function applyFilter() {
+  DATA = RAW_DATA.filter(r => {
+    if (!r.dateObj || isNaN(r.dateObj)) return true;
+    const d = r.dateObj.toISOString().slice(0, 10);
+    if (filterFrom && d < filterFrom) return false;
+    if (filterTo   && d > filterTo)   return false;
+    return true;
+  });
+  const el = document.getElementById('filter-info');
+  if (el) el.textContent = (filterFrom || filterTo)
+    ? `${DATA.length.toLocaleString('es-ES')} tickets en el rango`
+    : '';
+}
 
-  // Date range
-  const dates = DATA.map(r => r.dateObj).filter(Boolean).filter(d => !isNaN(d));
-  if (dates.length) {
-    const min = new Date(Math.min(...dates));
-    const max = new Date(Math.max(...dates));
-    document.getElementById('date-range-label').textContent =
-      `${fmt(min)} → ${fmt(max)}`;
-  }
+function onFilterRange() {
+  filterFrom = document.getElementById('filter-from').value;
+  filterTo   = document.getElementById('filter-to').value;
+  applyFilter();
+  refreshRender();
+}
 
+function clearFilters() {
+  filterFrom = ''; filterTo = '';
+  document.getElementById('filter-from').value = '';
+  document.getElementById('filter-to').value = '';
+  applyFilter();
+  refreshRender();
+}
+
+function refreshRender() {
+  updateDateRangeLabel();
   renderKPIs();
   renderPendientesArea();
   renderTopEspera();
   renderAbiertosArea();
   renderStacked();
   renderCategoriasTotal();
+}
+
+function updateDateRangeLabel() {
+  const dates = RAW_DATA.map(r => r.dateObj).filter(d => d && !isNaN(d));
+  if (!dates.length) return;
+  let minTs = Infinity, maxTs = -Infinity;
+  dates.forEach(d => { const t = d.getTime(); if (t < minTs) minTs = t; if (t > maxTs) maxTs = t; });
+  document.getElementById('date-range-label').textContent =
+    `${fmt(new Date(minTs))} → ${fmt(new Date(maxTs))}`;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+function initDashboard() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  refreshRender();
 }
 
 function fmt(d) {

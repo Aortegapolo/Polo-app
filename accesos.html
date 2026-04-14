@@ -500,6 +500,14 @@
       <input type="date" class="filter-input" id="filter-date" oninput="onFilterDate()">
     </div>
     <div class="filter-group">
+      <div class="filter-label">Desde</div>
+      <input type="date" class="filter-input" id="filter-from" oninput="onFilterRange()">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Hasta</div>
+      <input type="date" class="filter-input" id="filter-to" oninput="onFilterRange()">
+    </div>
+    <div class="filter-group">
       <div class="filter-label">Agregación</div>
       <div class="toggle-bar" style="margin:0">
         <button id="btn-mediana" class="toggle-btn active" onclick="setAggMode('mediana')" style="padding:5px 12px;font-size:10px">MEDIANA</button>
@@ -596,12 +604,14 @@ const DOW_DEFS = [
 ];
 
 // ─── ESTADO ────────────────────────────────────────────────────
-let DATA         = [];
-let filterMonths = new Set();
-let filterDows   = new Set();
-let filterDate   = '';
-let viewMode     = 'tipo'; // 'tipo' | 'grupo'
-let aggMode      = 'mediana'; // 'mediana' | 'media'
+let DATA           = [];
+let filterMonths   = new Set();
+let filterDows     = new Set();
+let filterDate     = '';
+let filterDateFrom = '';
+let filterDateTo   = '';
+let viewMode       = 'tipo'; // 'tipo' | 'grupo'
+let aggMode        = 'mediana'; // 'mediana' | 'media'
 
 // ─── HELPERS ───────────────────────────────────────────────────
 function getEntryType(dispositivo) {
@@ -644,6 +654,7 @@ function set(id, val) {
 
 // ─── PARSE JSON (desde API) ────────────────────────────────────
 function parseJSON(data) {
+  const isFirst = DATA.length === 0;
   DATA = data.map(r => {
     const fechaStr    = (r.fecha || '').trim();
     const dateObj     = new Date(fechaStr.replace(' ', 'T'));
@@ -666,7 +677,25 @@ function parseJSON(data) {
     };
   }).filter(r => r !== null);
 
-  initDashboard();
+  if (isFirst) {
+    initDashboard();
+  } else {
+    updateDateRangeLabel();
+    buildFilterChips();
+    updateChips();
+    render();
+  }
+}
+
+function updateDateRangeLabel() {
+  if (!DATA.length) return;
+  let minTs = Infinity, maxTs = -Infinity;
+  DATA.forEach(r => {
+    const t = r.dateObj.getTime();
+    if (t < minTs) minTs = t;
+    if (t > maxTs) maxTs = t;
+  });
+  set('date-range-label', `${fmtDate(new Date(minTs))} → ${fmtDate(new Date(maxTs))}`);
 }
 
 // ─── CARGA DESDE API ───────────────────────────────────────────
@@ -690,14 +719,7 @@ setInterval(loadData, 5 * 60 * 1000);
 function initDashboard() {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('main').style.display   = 'block';
-
-  const dates = DATA.map(r => r.dateObj);
-  if (dates.length) {
-    const min = new Date(Math.min(...dates));
-    const max = new Date(Math.max(...dates));
-    set('date-range-label', `${fmtDate(min)} → ${fmtDate(max)}`);
-  }
-
+  updateDateRangeLabel();
   buildFilterChips();
   render();
 }
@@ -734,9 +756,22 @@ function onFilterDate() {
   render();
 }
 
+function onFilterRange() {
+  filterDateFrom = document.getElementById('filter-from').value;
+  filterDateTo   = document.getElementById('filter-to').value;
+  if (filterDateFrom || filterDateTo) {
+    filterDate = '';
+    document.getElementById('filter-date').value = '';
+  }
+  render();
+}
+
 function clearFilters() {
-  filterMonths.clear(); filterDows.clear(); filterDate = '';
+  filterMonths.clear(); filterDows.clear();
+  filterDate = ''; filterDateFrom = ''; filterDateTo = '';
   document.getElementById('filter-date').value = '';
+  document.getElementById('filter-from').value = '';
+  document.getElementById('filter-to').value = '';
   updateChips(); render();
 }
 
@@ -766,8 +801,10 @@ function setAggMode(mode) {
 
 // ─── FILTRADO ──────────────────────────────────────────────────
 function getFiltered() {
-  if (filterDate) return DATA.filter(r => r.date === filterDate);
   return DATA.filter(r => {
+    if (filterDate     && r.date !== filterDate)    return false;
+    if (filterDateFrom && r.date < filterDateFrom)  return false;
+    if (filterDateTo   && r.date > filterDateTo)    return false;
     if (filterMonths.size && !filterMonths.has(r.month))   return false;
     if (filterDows.size   && !filterDows.has(r.dayOfWeek)) return false;
     return true;

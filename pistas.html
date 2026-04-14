@@ -855,15 +855,15 @@ function initDashboard() {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('main').style.display = 'block';
 
-  const dates = RESERVATIONS.map(r => r.dateObj).filter(d => !isNaN(d));
-  const minDate = new Date(Math.min(...dates));
-  const maxDate = new Date(Math.max(...dates));
-  document.getElementById('date-range-label').textContent =
-    `${fmt(minDate)} → ${fmt(maxDate)}`;
+  const validDates = RESERVATIONS.map(r => r.dateObj).filter(d => d && !isNaN(d));
+  if (validDates.length) {
+    let minTs = Infinity, maxTs = -Infinity;
+    validDates.forEach(d => { const t = d.getTime(); if (t < minTs) minTs = t; if (t > maxTs) maxTs = t; });
+    document.getElementById('date-range-label').textContent =
+      `${fmt(new Date(minTs))} → ${fmt(new Date(maxTs))}`;
+  }
 
-  // Populate date selectors with all unique dates (sorted chronologically)
   populateDateSelectors();
-
   renderAll();
 }
 

@@ -19,7 +19,7 @@ def clean():
             NULL                                        AS grupo_usuario,
             CAST(event_id AS CHAR)                      AS evento
         FROM biostar_event
-        WHERE datetime >= '2026-01-01 00:00:00'
+        WHERE datetime >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
         ORDER BY datetime ASC
     """)
 
