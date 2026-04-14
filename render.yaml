@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: clubpolo
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      # Variables no sensibles
+      - key: DB_PORT
+        value: 3306
+      - key: REFRESH_INTERVAL_MINUTES
+        value: 5
+      # Credenciales: introducir manualmente en Render dashboard (sync: false)
+      - key: DB_HOST
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false

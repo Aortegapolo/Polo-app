@@ -9,6 +9,9 @@ CACHE_DIR = os.path.join(BASE_DIR, "cache")
 
 app = Flask(__name__)
 
+# Arranca el scheduler al importar el módulo (funciona con gunicorn y python app.py)
+scheduler = start_scheduler()
+
 
 # ── PÁGINAS HTML ──────────────────────────────────────────────────
 
@@ -21,6 +24,11 @@ def accesos_page():
 @app.route("/pistas")
 def pistas_page():
     return send_from_directory(BASE_DIR, "pistas.html")
+
+
+@app.route("/tickets")
+def tickets_page():
+    return send_from_directory(BASE_DIR, "tickets.html")
 
 
 # ── API ───────────────────────────────────────────────────────────
@@ -44,11 +52,6 @@ def api_pistas():
     return _serve_cache("pistas.json")
 
 
-@app.route("/tickets")
-def tickets_page():
-    return send_from_directory(BASE_DIR, "tickets.html")
-
-
 @app.route("/api/tickets")
 def api_tickets():
     return _serve_cache("tickets.json")
@@ -57,7 +60,6 @@ def api_tickets():
 # ── ARRANQUE ──────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    scheduler = start_scheduler()
     try:
         app.run(host="0.0.0.0", port=5000, debug=False)
     finally:
