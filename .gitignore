@@ -1,0 +1,33 @@
+# Credenciales y configuración local
+.env
+.env.*
+
+# Claude Code (configuración local del IDE)
+.claude/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Caché de la app
+cache/
+
+# Backups
+bkp/
+
+# Datos crudos y CSVs
+*.csv
+
+# HTMLs generados
+*.html
+
+# Logs
+*.log
+server.log
+
+# Notebooks de limpieza (datos de análisis locales)
+*.ipynb
