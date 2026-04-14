@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Accesos · Club de Polo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E8192C;
+    --red-light: #ff4d5e;
+    --red-dim: rgba(232,25,44,0.15);
+    --blue: #1542E8;
+    --blue-light: #4d6fff;
+    --blue-dim: rgba(21,66,232,0.15);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.15);
+    --orange: #fb923c;
+    --orange-dim: rgba(251,146,60,0.15);
+    --purple: #a855f7;
+    --purple-dim: rgba(168,85,247,0.15);
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f2f8;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --card-radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--red), var(--blue-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .date-range { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; }
+
+  /* ── LOADING ── */
+  #loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 64px);
+    gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); letter-spacing: 1px; }
+
+  /* ── MAIN ── */
+  #main { display: none; padding: 24px 32px 48px; }
+
+  /* ── KPIs ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .kpi-card.blue::before   { background: var(--blue); }
+  .kpi-card.orange::before { background: var(--orange); }
+  .kpi-card.green::before  { background: var(--green); }
+  .kpi-card.red::before    { background: var(--red); }
+  .kpi-label { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 1.5px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+  .kpi-value { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 1px; line-height: 1; }
+  .kpi-value.blue   { color: var(--blue-light); }
+  .kpi-value.orange { color: var(--orange); }
+  .kpi-value.green  { color: var(--green); }
+  .kpi-value.red    { color: var(--red-light); }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-family: 'DM Mono', monospace; }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin: 36px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    vertical-align: middle;
+  }
+  .section-header span.blue   { background: var(--blue-dim);   color: var(--blue-light); border: 1px solid var(--blue); }
+  .section-header span.orange { background: var(--orange-dim); color: var(--orange);     border: 1px solid var(--orange); }
+  .section-header span.purple { background: var(--purple-dim); color: var(--purple);     border: 1px solid var(--purple); }
+  .section-header span.green  { background: var(--green-dim);  color: var(--green);      border: 1px solid var(--green); }
+
+  /* ── CHART CARD ── */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 20px 22px;
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .chart-card:hover { border-color: rgba(255,255,255,0.13); }
+  .chart-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chart-title-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .chart-title-dot.blue   { background: var(--blue); }
+  .chart-title-dot.orange { background: var(--orange); }
+  .chart-title-dot.purple { background: var(--purple); }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 7px; }
+  .filter-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip:hover { border-color: var(--blue-light); color: var(--text); }
+  .chip.active { background: var(--blue-dim); border-color: var(--blue); color: var(--blue-light); }
+  .filter-input {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 6px 10px;
+    outline: none;
+    cursor: pointer;
+  }
+  .filter-input:focus { border-color: var(--blue-light); }
+  .filter-clear {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    align-self: flex-end;
+  }
+  .filter-clear:hover { border-color: var(--red-light); color: var(--red-light); }
+
+  /* ── TOGGLE + INFO BAR ── */
+  .toggle-info-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .toggle-bar {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    width: fit-content;
+  }
+  .toggle-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 10px 20px;
+    border: none;
+    border-right: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .toggle-btn:last-child { border-right: none; }
+  .toggle-btn.active { background: var(--blue-dim); color: var(--blue-light); }
+  .toggle-btn:hover:not(.active) { background: rgba(255,255,255,0.03); color: var(--text-dim); }
+  .filter-info {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+  }
+
+  /* ── LEGEND ── */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 0.8px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── HOUR ROWS (Sección 1) ── */
+  .hour-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .hour-row:last-child { margin-bottom: 0; }
+  .hour-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--text);
+    letter-spacing: 2px;
+    width: 140px;
+    flex-shrink: 0;
+    padding-top: 1px;
+    white-space: nowrap;
+  }
+  .hour-bar-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .hour-bar-track {
+    height: 14px;
+    background: var(--surface2);
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+  }
+  .hour-bar-seg {
+    height: 100%;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    position: relative;
+  }
+  .hour-dist-labels {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .hour-dist-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .hour-dist-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .hour-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+    width: 72px;
+  }
+
+  .hour-avg-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .hour-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    color: var(--text);
+    text-align: right;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .hour-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    text-align: right;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  /* ── BAR ROWS (Sección 2 global) ── */
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .bar-row:last-child { margin-bottom: 0; }
+  .bar-area-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.8px;
+    width: 190px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+  .bar-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--text); width: 60px; text-align: right; flex-shrink: 0; line-height: 1; }
+  .bar-pct { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); width: 38px; text-align: right; flex-shrink: 0; }
+
+  /* ── CROSS ROWS (Sección 3) ── */
+  .cross-row { margin-bottom: 18px; }
+  .cross-row:last-child { margin-bottom: 0; }
+  .cross-row-inner { display: flex; align-items: flex-start; gap: 12px; }
+  .cross-group-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.8px;
+    width: 200px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-top: 1px;
+  }
+  .cross-bar-area { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .cross-bar-track { height: 14px; background: var(--surface2); border-radius: 5px; overflow: hidden; display: flex; }
+  .cross-bar-seg { height: 100%; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+  .cross-dist-labels {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .cross-dist-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .cross-dist-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .cross-count { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--text); width: 54px; text-align: right; flex-shrink: 0; line-height: 1; }
+
+  /* ── NO DATA ── */
+  .no-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── SCROLL WRAP ── */
+  .scroll-wrap { max-height: 600px; overflow-y: auto; padding-right: 4px; }
+  .scroll-wrap::-webkit-scrollbar { width: 4px; }
+  .scroll-wrap::-webkit-scrollbar-track { background: transparent; }
+  .scroll-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 700px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    #main { padding: 16px; }
+    .filter-bar { flex-direction: column; }
+    .hour-label { width: 100px; font-size: 14px; }
+    .bar-area-label { width: 130px; }
+    .cross-group-label { width: 130px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:baseline;gap:18px">
+    <div class="logo">REAL CLUB DE POLO DE BARCELONA</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:var(--text-muted);border-left:1px solid var(--border);padding-left:18px">ACCESOS</div>
+  </div>
+  <div class="header-right">
+    <span class="date-range" id="date-range-label">—</span>
+  </div>
+</header>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>CARGANDO DATOS...</p>
+</div>
+
+<div id="main">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Total Accesos</div>
+      <div class="kpi-value blue" id="kpi-total">—</div>
+      <div class="kpi-sub" id="kpi-total-sub"></div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Coche</div>
+      <div class="kpi-value blue" id="kpi-coche">—</div>
+      <div class="kpi-sub" id="kpi-coche-sub"></div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">Moto</div>
+      <div class="kpi-value orange" id="kpi-moto">—</div>
+      <div class="kpi-sub" id="kpi-moto-sub"></div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Peatonal</div>
+      <div class="kpi-value green" id="kpi-peatonal">—</div>
+      <div class="kpi-sub" id="kpi-peatonal-sub"></div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <div class="filter-label">Mes</div>
+      <div class="filter-chips" id="filter-months"></div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Día de la Semana</div>
+      <div class="filter-chips" id="filter-dows"></div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Día Concreto</div>
+      <input type="date" class="filter-input" id="filter-date" oninput="onFilterDate()">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Agregación</div>
+      <div class="toggle-bar" style="margin:0">
+        <button id="btn-mediana" class="toggle-btn active" onclick="setAggMode('mediana')" style="padding:5px 12px;font-size:10px">MEDIANA</button>
+        <button id="btn-media"   class="toggle-btn"        onclick="setAggMode('media')" style="padding:5px 12px;font-size:10px">MEDIA</button>
+      </div>
+    </div>
+    <button class="filter-clear" onclick="clearFilters()">✕ LIMPIAR</button>
+  </div>
+
+  <!-- TOGGLE + INFO -->
+  <div class="toggle-info-bar">
+    <div class="toggle-bar">
+      <button id="btn-tipo"  class="toggle-btn active" onclick="setMode('tipo')">TIPO DE ENTRADA</button>
+      <button id="btn-grupo" class="toggle-btn"        onclick="setMode('grupo')">GRUPO USUARIO</button>
+    </div>
+    <div class="filter-info" id="filter-info-label"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECCIÓN 1: FRANJAS HORARIAS                -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section-header">
+    ACCESOS POR FRANJA HORARIA
+    <span class="blue" id="hourly-badge">HORA A HORA</span>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">
+      <span class="chart-title-dot blue"></span>
+      Distribución de accesos por hora ·
+      <span id="hourly-subtitle" style="color:var(--text-dim)">conteo total</span>
+    </div>
+    <div class="legend" id="legend-hourly"></div>
+    <div class="scroll-wrap">
+      <div id="chart-hourly"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECCIÓN 3: ANÁLISIS CRUZADO                -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section-header">
+    ANÁLISIS CRUZADO
+    <span class="purple">GRUPO × TIPO</span>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">
+      <span class="chart-title-dot purple"></span>
+      Top usuarios por accesos · distribución por tipo de entrada debajo de cada barra
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#1542E8"></div>Coche</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div>Moto</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Peatonal</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#6b7280"></div>Otro</div>
+    </div>
+    <div class="scroll-wrap">
+      <div id="chart-cross"></div>
+    </div>
+  </div>
+
+</div><!-- end #main -->
+
+<script>
+// ─── CONSTANTES ────────────────────────────────────────────────
+const ACCESS_EVENTS = new Set([
+  'Autenticación 1:N correcta (Huella)',
+  'Autenticación Correcta 1:1 (Tarjeta)',
+  '1:1 authentication succeeded (Mobile Card)',
+  'Autenticación 1:1 correcta (ID + Huella)',
+  'Autenticación 1:1 errónea (Huella)',
+]);
+
+const TIPO_CONFIG = {
+  'Coche':    { hex: '#1542E8', light: '#4d6fff' },
+  'Moto':     { hex: '#fb923c', light: '#fdba74' },
+  'Peatonal': { hex: '#22c55e', light: '#4ade80' },
+  'Otro':     { hex: '#6b7280', light: '#9ca3af' },
+};
+const TIPO_ORDER = ['Coche', 'Moto', 'Peatonal', 'Otro'];
+
+const GRUPO_COLORS = [
+  '#4d6fff','#fb923c','#22c55e','#a855f7','#f59e0b',
+  '#06b6d4','#ec4899','#84cc16','#f97316','#8b5cf6',
+  '#10b981','#ef4444','#38bdf8','#d97706','#6366f1',
+];
+
+const MONTH_NAMES = ['','ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const DOW_DEFS = [
+  { val: 1, label: 'LUN' }, { val: 2, label: 'MAR' }, { val: 3, label: 'MIÉ' },
+  { val: 4, label: 'JUE' }, { val: 5, label: 'VIE' }, { val: 6, label: 'SÁB' },
+  { val: 0, label: 'DOM' },
+];
+
+// ─── ESTADO ────────────────────────────────────────────────────
+let DATA         = [];
+let filterMonths = new Set();
+let filterDows   = new Set();
+let filterDate   = '';
+let viewMode     = 'tipo'; // 'tipo' | 'grupo'
+let aggMode      = 'mediana'; // 'mediana' | 'media'
+
+// ─── HELPERS ───────────────────────────────────────────────────
+function getEntryType(dispositivo) {
+  if (dispositivo === 'BARRERA DERECHA' || dispositivo === 'BARRERA IZQUIERDA') return 'Coche';
+  if (dispositivo === 'BARRERA MOTOS') return 'Moto';
+  if (dispositivo === 'ENTRADA_PEAT_IZQ' || dispositivo === 'ENTRADA_PEAT_DER') return 'Peatonal';
+  return 'Otro';
+}
+
+function extractGroupLabel(raw) {
+  if (!raw) return '—';
+  return raw.trim();
+}
+
+
+function median(arr) {
+  if (!arr.length) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function mean(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce((s, v) => s + v, 0) / arr.length;
+}
+
+function agg(arr) {
+  return aggMode === 'mediana' ? median(arr) : mean(arr);
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ─── PARSE JSON (desde API) ────────────────────────────────────
+function parseJSON(data) {
+  DATA = data.map(r => {
+    const fechaStr    = (r.fecha || '').trim();
+    const dateObj     = new Date(fechaStr.replace(' ', 'T'));
+    if (isNaN(dateObj)) return null;
+
+    const dispositivo = (r.dispositivo    || '').trim();
+    const grupoRaw    = (r.grupo_usuario  || '').trim();
+
+    return {
+      dateObj,
+      date:       fechaStr.substring(0, 10),
+      hour:       dateObj.getHours(),
+      dayOfWeek:  dateObj.getDay(),
+      month:      dateObj.getMonth() + 1,
+      dispositivo,
+      entryType:  getEntryType(dispositivo),
+      grupoRaw,
+      grupoLabel: grupoRaw || '—',
+      evento:     (r.evento || '').trim(),
+    };
+  }).filter(r => r !== null);
+
+  initDashboard();
+}
+
+// ─── CARGA DESDE API ───────────────────────────────────────────
+fetch('/api/accesos')
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(data => parseJSON(data))
+  .catch(err => {
+    document.getElementById('loading').innerHTML = `
+      <div style="text-align:center">
+        <p style="font-family:'DM Mono',monospace;font-size:13px;color:#6b7280;letter-spacing:1px;margin-bottom:20px">
+          Error cargando datos (${err.message}).<br>Comprueba que el servidor está activo.
+        </p>
+      </div>`;
+  });
+
+// ─── INIT ──────────────────────────────────────────────────────
+function initDashboard() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display   = 'block';
+
+  const dates = DATA.map(r => r.dateObj);
+  if (dates.length) {
+    const min = new Date(Math.min(...dates));
+    const max = new Date(Math.max(...dates));
+    set('date-range-label', `${fmtDate(min)} → ${fmtDate(max)}`);
+  }
+
+  buildFilterChips();
+  render();
+}
+
+// ─── FILTER CHIPS ──────────────────────────────────────────────
+function buildFilterChips() {
+  const months = [...new Set(DATA.map(r => r.month))].sort((a, b) => a - b);
+  document.getElementById('filter-months').innerHTML = months.map(m =>
+    `<button class="chip" data-val="${m}" onclick="toggleMonth(${m})">${MONTH_NAMES[m]}</button>`
+  ).join('');
+
+  document.getElementById('filter-dows').innerHTML = DOW_DEFS.map(d =>
+    `<button class="chip" data-val="${d.val}" onclick="toggleDow(${d.val})">${d.label}</button>`
+  ).join('');
+}
+
+function toggleMonth(m) {
+  filterDate = '';
+  document.getElementById('filter-date').value = '';
+  filterMonths.has(m) ? filterMonths.delete(m) : filterMonths.add(m);
+  updateChips(); render();
+}
+
+function toggleDow(d) {
+  filterDate = '';
+  document.getElementById('filter-date').value = '';
+  filterDows.has(d) ? filterDows.delete(d) : filterDows.add(d);
+  updateChips(); render();
+}
+
+function onFilterDate() {
+  filterDate = document.getElementById('filter-date').value;
+  if (filterDate) { filterMonths.clear(); filterDows.clear(); updateChips(); }
+  render();
+}
+
+function clearFilters() {
+  filterMonths.clear(); filterDows.clear(); filterDate = '';
+  document.getElementById('filter-date').value = '';
+  updateChips(); render();
+}
+
+function updateChips() {
+  document.querySelectorAll('#filter-months .chip').forEach(c =>
+    c.classList.toggle('active', filterMonths.has(Number(c.dataset.val))));
+  document.querySelectorAll('#filter-dows .chip').forEach(c =>
+    c.classList.toggle('active', filterDows.has(Number(c.dataset.val))));
+}
+
+// ─── MODO TOGGLE ───────────────────────────────────────────────
+function setMode(mode) {
+  viewMode = mode;
+  document.getElementById('btn-tipo').classList.toggle('active',  mode === 'tipo');
+  document.getElementById('btn-grupo').classList.toggle('active', mode === 'grupo');
+  const filtered = getFiltered();
+  renderHourly(filtered);
+  // Section 3 doesn't depend on the toggle
+}
+
+function setAggMode(mode) {
+  aggMode = mode;
+  document.getElementById('btn-mediana').classList.toggle('active', mode === 'mediana');
+  document.getElementById('btn-media').classList.toggle('active',   mode === 'media');
+  render();
+}
+
+// ─── FILTRADO ──────────────────────────────────────────────────
+function getFiltered() {
+  if (filterDate) return DATA.filter(r => r.date === filterDate);
+  return DATA.filter(r => {
+    if (filterMonths.size && !filterMonths.has(r.month))   return false;
+    if (filterDows.size   && !filterDows.has(r.dayOfWeek)) return false;
+    return true;
+  });
+}
+
+function getFilterLabel(filtered) {
+  const days = [...new Set(filtered.map(r => r.date))].length;
+  if (filterDate)
+    return `DÍA: ${filterDate} · ${filtered.length.toLocaleString('es-ES')} accesos`;
+  const parts = [];
+  if (filterMonths.size) parts.push([...filterMonths].sort().map(m => MONTH_NAMES[m]).join(' '));
+  if (filterDows.size)   parts.push(DOW_DEFS.filter(d => filterDows.has(d.val)).map(d => d.label).join(' '));
+  const base = parts.length ? parts.join(' · ') : 'TODOS LOS DATOS';
+  return `${base} · ${days} día(s) · ${filtered.length.toLocaleString('es-ES')} accesos`;
+}
+
+// ─── RENDER GENERAL ────────────────────────────────────────────
+function render() {
+  const filtered = getFiltered();
+  renderKPIs(filtered);
+  set('filter-info-label', getFilterLabel(filtered));
+  renderHourly(filtered);
+  renderCross(filtered);
+}
+
+// ─── KPIs ──────────────────────────────────────────────────────
+function renderKPIs(filtered) {
+  const total    = filtered.length;
+  const coches   = filtered.filter(r => r.entryType === 'Coche').length;
+  const motos    = filtered.filter(r => r.entryType === 'Moto').length;
+  const peatonal = filtered.filter(r => r.entryType === 'Peatonal').length;
+  const pctVal = v => total ? Math.round(v / total * 100) : 0;
+
+  set('kpi-total',       total.toLocaleString('es-ES'));
+  set('kpi-total-sub',   'en el periodo seleccionado');
+
+  set('kpi-coche',       `${pctVal(coches)}%`);
+  set('kpi-coche-sub',   `${coches.toLocaleString('es-ES')} accesos`);
+
+  set('kpi-moto',        `${pctVal(motos)}%`);
+  set('kpi-moto-sub',    `${motos.toLocaleString('es-ES')} accesos`);
+
+  set('kpi-peatonal',    `${pctVal(peatonal)}%`);
+  set('kpi-peatonal-sub', `${peatonal.toLocaleString('es-ES')} accesos`);
+
+}
+
+// ─── SECCIÓN 1: FRANJAS HORARIAS ───────────────────────────────
+function renderHourly(filtered) {
+  const container = document.getElementById('chart-hourly');
+  const legendEl  = document.getElementById('legend-hourly');
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="no-data">SIN DATOS</div>';
+    legendEl.innerHTML  = '';
+    return;
+  }
+
+  const uniqueDates = [...new Set(filtered.map(r => r.date))];
+  const numDays     = uniqueDates.length;
+  const isMultiDay  = numDays > 1;
+
+  set('hourly-subtitle', isMultiDay
+    ? `${aggMode === 'mediana' ? 'mediana' : 'media'} por día (${numDays} días seleccionados)`
+    : `conteo total · ${uniqueDates[0]}`);
+
+  // Top groups for 'grupo' mode (top 5 + Otros)
+  let topGroups = [];
+  if (viewMode === 'grupo') {
+    const gc = {};
+    filtered.forEach(r => { gc[r.grupoLabel] = (gc[r.grupoLabel] || 0) + 1; });
+    topGroups = Object.entries(gc).sort((a, b) => b[1] - a[1]).slice(0, 5).map(e => e[0]);
+  }
+
+  // Build legend
+  if (viewMode === 'tipo') {
+    legendEl.innerHTML = TIPO_ORDER.map(t =>
+      `<div class="legend-item"><div class="legend-dot" style="background:${TIPO_CONFIG[t].hex}"></div>${t}</div>`
+    ).join('');
+  } else {
+    legendEl.innerHTML = [...topGroups, 'Otros'].map((g, i) =>
+      `<div class="legend-item"><div class="legend-dot" style="background:${GRUPO_COLORS[i % GRUPO_COLORS.length]}"></div>${g}</div>`
+    ).join('');
+  }
+
+  // Aggregate by (date, hour)
+  const hourMap = {}; // hour -> { total, byDate: {date: {key: count}} }
+  filtered.forEach(r => {
+    const h = r.hour;
+    if (!hourMap[h]) hourMap[h] = { total: 0, byDate: {} };
+    hourMap[h].total++;
+    if (!hourMap[h].byDate[r.date]) hourMap[h].byDate[r.date] = {};
+    const key = viewMode === 'tipo' ? r.entryType : r.grupoLabel;
+    hourMap[h].byDate[r.date][key] = (hourMap[h].byDate[r.date][key] || 0) + 1;
+  });
+
+  const hours = Object.keys(hourMap).map(Number).sort((a, b) => a - b);
+
+  // Compute median per day for each hour (include 0 for days without data in that hour)
+  function getHourlyMedian(h) {
+    const dailyCounts = uniqueDates.map(d => {
+      const dayData = hourMap[h].byDate[d];
+      return dayData ? Object.values(dayData).reduce((s, v) => s + v, 0) : 0;
+    });
+    return agg(dailyCounts);
+  }
+
+  const maxMedian = Math.max(...hours.map(h => getHourlyMedian(h)));
+
+  let html = '';
+  hours.forEach(h => {
+    const data = hourMap[h];
+    const medianPerDay = getHourlyMedian(h);
+    const barWidthPct = maxMedian > 0 ? (medianPerDay / maxMedian * 100).toFixed(1) : 0;
+
+    // Option B with median: compute % per day then take median of percentages
+    let medDist = {}; // key -> median percentage
+    if (isMultiDay) {
+      const allKeys = new Set();
+      Object.values(data.byDate).forEach(dayData => {
+        Object.keys(dayData).forEach(k => allKeys.add(k));
+      });
+      // For each key, collect % from each day (0 if day has no data for this hour), then median
+      allKeys.forEach(k => {
+        const pcts = uniqueDates.map(d => {
+          const dayData = data.byDate[d];
+          if (!dayData) return 0;
+          const dayTotal = Object.values(dayData).reduce((s, v) => s + v, 0);
+          return dayTotal > 0 ? (dayData[k] || 0) / dayTotal * 100 : 0;
+        });
+        medDist[k] = agg(pcts);
+      });
+    } else {
+      // Single day: just use raw percentages
+      const dayData = Object.values(data.byDate)[0] || {};
+      const dayTotal = Object.values(dayData).reduce((s, v) => s + v, 0);
+      Object.entries(dayData).forEach(([k, v]) => {
+        medDist[k] = dayTotal > 0 ? v / dayTotal * 100 : 0;
+      });
+    }
+
+    // Normalize so percentages sum to 100
+    const distSum = Object.values(medDist).reduce((s, v) => s + v, 0);
+    if (distSum > 0) {
+      Object.keys(medDist).forEach(k => { medDist[k] = medDist[k] / distSum * 100; });
+    }
+
+    // Build distribution entries and sort by % descending
+    let distEntries = [];
+    if (viewMode === 'tipo') {
+      TIPO_ORDER.forEach(t => {
+        const p = medDist[t] || 0;
+        if (p < 0.05) return;
+        distEntries.push({ key: t, pct: p, color: TIPO_CONFIG[t].hex, lightColor: TIPO_CONFIG[t].light });
+      });
+    } else {
+      [...topGroups, 'Otros'].forEach((g, i) => {
+        let p;
+        if (g === 'Otros') {
+          p = Object.entries(medDist)
+            .filter(([k]) => !topGroups.includes(k))
+            .reduce((s, [, val]) => s + val, 0);
+        } else {
+          p = medDist[g] || 0;
+        }
+        if (p < 0.05) return;
+        const color = GRUPO_COLORS[i % GRUPO_COLORS.length];
+        distEntries.push({ key: g, pct: p, color, lightColor: color });
+      });
+    }
+    distEntries.sort((a, b) => b.pct - a.pct);
+
+    let barSegs = '';
+    let distLabels = '';
+    distEntries.forEach(e => {
+      barSegs += `<div class="hour-bar-seg" style="width:${e.pct.toFixed(1)}%;background:${e.color}"></div>`;
+      distLabels += `<span class="hour-dist-lbl"><span class="hour-dist-dot" style="background:${e.color}"></span><span style="color:${e.lightColor}">${e.pct.toFixed(1)}%</span> <span style="color:var(--text-muted)">${e.key}</span></span>`;
+    });
+
+    const hNext = h + 1 < 24 ? h + 1 : 0;
+
+    html += `
+      <div class="hour-row">
+        <span class="hour-label">${String(h).padStart(2,'0')}:00 – ${String(hNext).padStart(2,'0')}:00</span>
+        <div class="hour-bar-area">
+          <div class="hour-bar-track" style="width:${barWidthPct}%">${barSegs}</div>
+          <div class="hour-dist-labels">${distLabels}</div>
+        </div>
+        <div class="hour-right">
+          ${isMultiDay ? `<span class="hour-avg-label">${aggMode === 'mediana' ? 'MEDIANA' : 'MEDIA'}</span>` : ''}
+          <span class="hour-count">${isMultiDay ? Math.floor(medianPerDay) : data.total}</span>
+          ${isMultiDay ? `<span class="hour-meta">total ${data.total.toLocaleString('es-ES')}</span>` : ''}
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// ─── SECCIÓN 3: ANÁLISIS CRUZADO ───────────────────────────────
+function renderCross(filtered) {
+  const container = document.getElementById('chart-cross');
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="no-data">SIN DATOS</div>';
+    return;
+  }
+
+  const uniqueDates = [...new Set(filtered.map(r => r.date))];
+  const numDays     = uniqueDates.length;
+  const isMultiDay  = numDays > 1;
+
+  // Build per-date per-group data: group -> date -> { total, byTipo }
+  const perDayGroup = {};
+  filtered.forEach(r => {
+    const g = r.grupoLabel;
+    if (!perDayGroup[g]) perDayGroup[g] = {};
+    if (!perDayGroup[g][r.date]) perDayGroup[g][r.date] = { total: 0, byTipo: {} };
+    perDayGroup[g][r.date].total++;
+    perDayGroup[g][r.date].byTipo[r.entryType] = (perDayGroup[g][r.date].byTipo[r.entryType] || 0) + 1;
+  });
+
+  // Compute medians per group
+  const groupStats = Object.entries(perDayGroup).map(([label, dateMap]) => {
+    const totalAll = Object.values(dateMap).reduce((s, d) => s + d.total, 0);
+
+    // Median of daily totals (include 0 for days without data for this group)
+    const dailyTotals = uniqueDates.map(d => dateMap[d] ? dateMap[d].total : 0);
+    const medTotal = agg(dailyTotals);
+
+    // Median of tipo percentages across days (include 0 for days without data)
+    let medDist = {};
+    if (isMultiDay) {
+      const allTipos = new Set();
+      Object.values(dateMap).forEach(d => Object.keys(d.byTipo).forEach(t => allTipos.add(t)));
+      allTipos.forEach(t => {
+        const pcts = uniqueDates.map(d => {
+          if (!dateMap[d] || dateMap[d].total === 0) return 0;
+          return (dateMap[d].byTipo[t] || 0) / dateMap[d].total * 100;
+        });
+        medDist[t] = agg(pcts);
+      });
+    } else {
+      const dayData = Object.values(dateMap)[0];
+      TIPO_ORDER.forEach(t => {
+        medDist[t] = dayData.total > 0 ? (dayData.byTipo[t] || 0) / dayData.total * 100 : 0;
+      });
+    }
+
+    // Normalize
+    const distSum = Object.values(medDist).reduce((s, v) => s + v, 0);
+    if (distSum > 0) {
+      Object.keys(medDist).forEach(k => { medDist[k] = medDist[k] / distSum * 100; });
+    }
+
+    return { label, medTotal, totalAll, medDist };
+  });
+
+  groupStats.sort((a, b) => b.medTotal - a.medTotal);
+  const top = groupStats.slice(0, 20);
+  const maxMed = top[0]?.medTotal || 1;
+
+  container.innerHTML = top.map(({ label, medTotal, totalAll, medDist }) => {
+    const barWidthPct = maxMed > 0 ? (medTotal / maxMed * 100).toFixed(1) : 0;
+
+    // Build distribution entries sorted by % descending
+    let distEntries = [];
+    TIPO_ORDER.forEach(t => {
+      const p = medDist[t] || 0;
+      if (p < 0.05) return;
+      distEntries.push({ key: t, pct: p, color: TIPO_CONFIG[t].hex, lightColor: TIPO_CONFIG[t].light || TIPO_CONFIG[t].hex });
+    });
+    distEntries.sort((a, b) => b.pct - a.pct);
+
+    let barSegs = '';
+    let distLabels = '';
+    distEntries.forEach(e => {
+      barSegs += `<div class="cross-bar-seg" style="width:${e.pct.toFixed(1)}%;background:${e.color}"></div>`;
+      distLabels += `<span class="cross-dist-lbl"><span class="cross-dist-dot" style="background:${e.color}"></span><span style="color:${e.lightColor}">${e.pct.toFixed(1)}%</span> <span style="color:var(--text-muted)">${e.key}</span></span>`;
+    });
+
+    return `<div class="cross-row">
+      <div class="cross-row-inner">
+        <span class="cross-group-label" title="${label}">${label}</span>
+        <div class="cross-bar-area">
+          <div class="cross-bar-track" style="width:${barWidthPct}%">${barSegs}</div>
+          <div class="cross-dist-labels">${distLabels}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;width:60px">
+          ${isMultiDay ? `<span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--text-muted);letter-spacing:1px">${aggMode === 'mediana' ? 'MEDIANA' : 'MEDIA'}</span>` : ''}
+          <span class="cross-count">${isMultiDay ? Math.floor(medTotal) : totalAll}</span>
+          ${isMultiDay ? `<span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:2px">total ${totalAll.toLocaleString('es-ES')}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

@@ -22,8 +22,8 @@ bkp/
 # Datos crudos y CSVs
 *.csv
 
-# HTMLs generados
-*.html
+# HTMLs generados (excepto los de la app)
+bkp/*.html
 
 # Logs
 *.log

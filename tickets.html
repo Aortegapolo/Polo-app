@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Tickets · Club</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E8192C;
+    --red-light: #ff4d5e;
+    --red-dim: rgba(232,25,44,0.15);
+    --blue: #1542E8;
+    --blue-light: #4d6fff;
+    --blue-dim: rgba(21,66,232,0.15);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.15);
+    --orange: #fb923c;
+    --orange-dim: rgba(251,146,60,0.15);
+    --purple: #a855f7;
+    --purple-dim: rgba(168,85,247,0.15);
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f2f8;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --card-radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--red), var(--blue-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .date-range {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+  #file-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #file-btn:hover { border-color: var(--blue-light); color: var(--text); }
+  #csv-file { display: none; }
+
+  /* LOADING */
+  #loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 64px);
+    gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); letter-spacing: 1px; }
+
+  /* MAIN */
+  #main { display: none; padding: 24px 32px 40px; }
+
+  /* KPIs */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi-card.red::before    { background: var(--red); }
+  .kpi-card.blue::before   { background: var(--blue); }
+  .kpi-card.green::before  { background: var(--green); }
+  .kpi-card.orange::before { background: var(--orange); }
+  .kpi-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .kpi-value.red    { color: var(--red-light); }
+  .kpi-value.blue   { color: var(--blue-light); }
+  .kpi-value.green  { color: var(--green); }
+  .kpi-value.orange { color: var(--orange); }
+  .kpi-value.white  { color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  /* SECTION HEADER */
+  .section-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin: 36px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    vertical-align: middle;
+  }
+  .section-header span.red    { background: var(--red-dim);    color: var(--red-light); border: 1px solid var(--red); }
+  .section-header span.orange { background: var(--orange-dim); color: var(--orange);    border: 1px solid var(--orange); }
+  .section-header span.purple { background: var(--purple-dim); color: var(--purple);    border: 1px solid var(--purple); }
+
+  /* CHART CARD */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 20px 22px;
+    position: relative;
+  }
+  .chart-card:hover { border-color: rgba(255,255,255,0.13); }
+  .chart-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chart-title-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .chart-title-dot.red    { background: var(--red); }
+  .chart-title-dot.orange { background: var(--orange); }
+  .chart-title-dot.purple { background: var(--purple); }
+
+  /* TWO COLUMN GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  /* BAR CHART ROWS */
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .bar-row:last-child { margin-bottom: 0; }
+  .bar-area-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.8px;
+    width: 170px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  }
+  .bar-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--text);
+    width: 44px;
+    text-align: right;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .bar-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 38px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* NO DATA */
+  .no-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* STACKED BAR (categorías por sección) */
+  .stacked-section {
+    margin-bottom: 14px;
+  }
+  .stacked-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  .stacked-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.8px;
+  }
+  .stacked-total {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .stacked-track {
+    height: 20px;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    background: var(--surface2);
+  }
+  .stacked-seg {
+    height: 100%;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    position: relative;
+  }
+  .stacked-seg:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text);
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    margin-top: 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.8px;
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* PENDING TABLE */
+  .pending-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+  .pending-table th {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 0 10px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+  }
+  .pending-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-size: 11px;
+    color: var(--text-dim);
+    vertical-align: middle;
+  }
+  .pending-table tr:last-child td { border-bottom: none; }
+  .pending-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .pending-table td.id-col { color: var(--text-muted); font-size: 10px; }
+  .pending-table td.asunto-col { color: var(--text); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pending-table td.espera-col { color: var(--red-light); font-weight: 500; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+  }
+  .badge.incidencia  { background: var(--red-dim);    color: var(--red-light); border: 1px solid var(--red); }
+  .badge.reclamacion { background: var(--orange-dim); color: var(--orange);    border: 1px solid var(--orange); }
+  .badge.consulta    { background: var(--blue-dim);   color: var(--blue-light);border: 1px solid var(--blue); }
+  .badge.felicitacion{ background: var(--green-dim);  color: var(--green);     border: 1px solid var(--green); }
+  .badge.pendiente   { background: var(--red-dim);    color: var(--red-light); border: 1px solid var(--red); }
+  .badge.ok          { background: var(--green-dim);  color: var(--green);     border: 1px solid var(--green); }
+  .badge.abierto     { background: var(--orange-dim); color: var(--orange);    border: 1px solid var(--orange); }
+  .badge.cerrado     { background: rgba(107,114,128,0.15); color: var(--text-muted); border: 1px solid rgba(107,114,128,0.3); }
+
+  .scroll-wrap { max-height: 400px; overflow-y: auto; padding-right: 4px; }
+  .scroll-wrap::-webkit-scrollbar { width: 4px; }
+  .scroll-wrap::-webkit-scrollbar-track { background: transparent; }
+  .scroll-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 1100px) {
+    .grid-3 { grid-template-columns: 1fr 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    #main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:baseline;gap:18px">
+    <div class="logo">REAL CLUB DE POLO DE BARCELONA</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:var(--text-muted);border-left:1px solid var(--border);padding-left:18px">TICKETS</div>
+  </div>
+  <div class="header-right">
+    <span class="date-range" id="date-range-label">—</span>
+  </div>
+</header>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>CARGANDO DATOS...</p>
+</div>
+
+<div id="main">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Total Tickets</div>
+      <div class="kpi-value blue" id="kpi-total">—</div>
+      <div class="kpi-sub" id="kpi-total-sub"></div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Sin Responder</div>
+      <div class="kpi-value red" id="kpi-pendientes">—</div>
+      <div class="kpi-sub" id="kpi-pendientes-sub"></div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">Abiertos (sin cerrar)</div>
+      <div class="kpi-value orange" id="kpi-abiertos">—</div>
+      <div class="kpi-sub" id="kpi-abiertos-sub"></div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Resueltos</div>
+      <div class="kpi-value green" id="kpi-cerrados">—</div>
+      <div class="kpi-sub" id="kpi-cerrados-sub"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SECCIÓN 1: SIN RESPONDER           -->
+  <!-- ═══════════════════════════════════ -->
+  <div class="section-header">
+    TICKETS SIN RESPONDER POR SECCIÓN
+    <span class="red">PENDIENTE</span>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title"><span class="chart-title-dot red"></span>Tickets pendientes de respuesta por área · proporción sobre total</div>
+    <div id="chart-pendientes-area"></div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title"><span class="chart-title-dot red"></span>Top tickets pendientes · más horas de espera</div>
+    <div class="scroll-wrap" style="max-height:280px">
+      <table class="pending-table">
+        <thead><tr>
+          <th>ID</th>
+          <th>Área</th>
+          <th>Categoría</th>
+          <th>Asunto</th>
+          <th>Espera</th>
+        </tr></thead>
+        <tbody id="table-top-espera"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SECCIÓN 2: SIN CERRAR              -->
+  <!-- ═══════════════════════════════════ -->
+  <div class="section-header">
+    TICKETS SIN CERRAR POR SECCIÓN
+    <span class="orange">ABIERTO</span>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title"><span class="chart-title-dot orange"></span>Tickets abiertos (sin resolver) por área · proporción sobre total</div>
+    <div id="chart-abiertos-area"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SECCIÓN 3: TIPO POR SECCIÓN        -->
+  <!-- ═══════════════════════════════════ -->
+  <div class="section-header">
+    TICKETS POR CATEGORÍA Y SECCIÓN
+    <span class="purple">DESGLOSE</span>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title"><span class="chart-title-dot purple"></span>Distribución por categoría · ancho proporcional al volumen total de la sección</div>
+    <div id="chart-stacked"></div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title"><span class="chart-title-dot purple"></span>Volumen total por categoría · todos los departamentos</div>
+    <div id="chart-categorias-total"></div>
+  </div>
+
+</div><!-- end #main -->
+
+<script>
+// ─── ESTADO ───────────────────────────────────────────────────
+let DATA = [];
+
+// ─── COLORES CATEGORÍAS ───────────────────────────────────────
+const CAT_COLORS = {
+  'Consultas / Sugerencias': { fill: '#1542E8', light: '#4d6fff', dim: 'rgba(21,66,232,0.6)' },
+  'Incidencia Instalaciones': { fill: '#E8192C', light: '#ff4d5e', dim: 'rgba(232,25,44,0.6)' },
+  'Reclamación':              { fill: '#fb923c', light: '#fdba74', dim: 'rgba(251,146,60,0.6)' },
+  'Felicitación':             { fill: '#22c55e', light: '#4ade80', dim: 'rgba(34,197,94,0.6)' },
+};
+const CAT_DEFAULT = { fill: '#6b7280', light: '#9ca3af', dim: 'rgba(107,114,128,0.6)' };
+
+function catColor(cat) { return CAT_COLORS[cat] || CAT_DEFAULT; }
+
+function badgeClass(cat) {
+  if (!cat) return '';
+  const c = cat.toLowerCase();
+  if (c.includes('incidencia')) return 'incidencia';
+  if (c.includes('reclamación') || c.includes('reclamacion')) return 'reclamacion';
+  if (c.includes('felicitación') || c.includes('felicitacion')) return 'felicitacion';
+  return 'consulta';
+}
+
+// ─── PARSE JSON (desde API) ───────────────────────────────────
+function parseJSON(data) {
+  const rows = [];
+
+  data.forEach(r => {
+    const id          = String(r.id          || '').trim();
+    const creado      = String(r.creado      || '').trim();
+    const espera      = parseInt(r.espera)   || 0;
+    const area        = String(r.area        || '').trim();
+    const categoria   = String(r.categoria   || '').trim();
+    const responsable = String(r.responsable || '').trim();
+    const asunto      = String(r.asunto      || '').trim();
+    const socio       = String(r.socio       || '').trim();
+    const respuesta   = String(r.respuesta   || '').trim();
+    const estado      = String(r.estado      || '').trim();
+
+    if (!id || !area) return;
+
+    const [d, m, y] = (creado || '').split('-');
+    const dateObj = d && m && y ? new Date(`${y}-${m}-${d}`) : null;
+
+    rows.push({ id, creado, espera, area, categoria, responsable, asunto, socio, respuesta, estado, dateObj });
+  });
+
+  DATA = rows;
+  initDashboard();
+}
+
+// ─── CARGA DESDE API ──────────────────────────────────────────
+fetch('/api/tickets')
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(data => parseJSON(data))
+  .catch(err => {
+    document.getElementById('loading').innerHTML = `
+      <div style="text-align:center">
+        <p style="font-family:'DM Mono',monospace;font-size:13px;color:#6b7280;letter-spacing:1px;margin-bottom:20px">
+          Error cargando datos (${err.message}).<br>Comprueba que el servidor está activo.
+        </p>
+      </div>`;
+  });
+
+// ─── INIT ─────────────────────────────────────────────────────
+function initDashboard() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+
+  // Date range
+  const dates = DATA.map(r => r.dateObj).filter(Boolean).filter(d => !isNaN(d));
+  if (dates.length) {
+    const min = new Date(Math.min(...dates));
+    const max = new Date(Math.max(...dates));
+    document.getElementById('date-range-label').textContent =
+      `${fmt(min)} → ${fmt(max)}`;
+  }
+
+  renderKPIs();
+  renderPendientesArea();
+  renderTopEspera();
+  renderAbiertosArea();
+  renderStacked();
+  renderCategoriasTotal();
+}
+
+function fmt(d) {
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// ─── KPIs ─────────────────────────────────────────────────────
+function renderKPIs() {
+  const total      = DATA.length;
+  const pendientes = DATA.filter(r => r.respuesta?.toLowerCase() === 'pendiente').length;
+  const abiertos   = DATA.filter(r => r.estado?.toLowerCase() === 'abierto').length;
+  const cerrados   = DATA.filter(r => r.estado?.toLowerCase() === 'cerrado').length;
+
+  set('kpi-total',     total.toLocaleString('es-ES'));
+  set('kpi-total-sub', `en el periodo`);
+  set('kpi-pendientes', pendientes.toLocaleString('es-ES'));
+  set('kpi-pendientes-sub', `${Math.round(pendientes/total*100)}% del total`);
+  set('kpi-abiertos', abiertos.toLocaleString('es-ES'));
+  set('kpi-abiertos-sub', `${Math.round(abiertos/total*100)}% del total`);
+  set('kpi-cerrados', cerrados.toLocaleString('es-ES'));
+  set('kpi-cerrados-sub', `${Math.round(cerrados/total*100)}% resueltos`);
+}
+
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ─── HELPER: agrupar por área ──────────────────────────────────
+function groupByArea(rows) {
+  const map = {};
+  rows.forEach(r => {
+    map[r.area] = (map[r.area] || 0) + 1;
+  });
+  return Object.entries(map).sort((a, b) => b[1] - a[1]);
+}
+
+// ─── RENDER BAR CHART ─────────────────────────────────────────
+function renderBarChart(containerId, entries, color, showPct, totalOverride) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!entries.length) { el.innerHTML = '<div class="no-data">SIN DATOS</div>'; return; }
+
+  const max   = entries[0][1];
+  const total = totalOverride || entries.reduce((s, [, v]) => s + v, 0);
+
+  let html = '';
+  entries.forEach(([label, val]) => {
+    const pct    = max > 0 ? Math.round(val / max * 100) : 0;
+    const pctTot = total > 0 ? Math.round(val / total * 100) : 0;
+    html += `<div class="bar-row">
+      <span class="bar-area-label" title="${label}">${label}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <span class="bar-val">${val}</span>
+      ${showPct ? `<span class="bar-pct">${pctTot}%</span>` : ''}
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+// ─── SECCIÓN 1: PENDIENTES POR ÁREA (con proporción) ──────────
+function renderPendientesArea() {
+  const el = document.getElementById('chart-pendientes-area');
+  if (!el) return;
+
+  const map = {};
+  DATA.forEach(r => {
+    if (!map[r.area]) map[r.area] = { pendiente: 0, total: 0 };
+    map[r.area].total++;
+    if (r.respuesta?.toLowerCase() === 'pendiente') map[r.area].pendiente++;
+  });
+
+  const entries = Object.entries(map)
+    .map(([area, v]) => ({ area, ...v }))
+    .filter(e => e.pendiente > 0)
+    .sort((a, b) => b.pendiente - a.pendiente);
+
+  if (!entries.length) { el.innerHTML = '<div class="no-data">SIN TICKETS PENDIENTES</div>'; return; }
+
+  const maxPend = entries[0].pendiente;
+  let html = '';
+  entries.forEach(e => {
+    const barPct = maxPend > 0 ? Math.round(e.pendiente / maxPend * 100) : 0;
+    const pct    = e.total > 0 ? Math.round(e.pendiente / e.total * 100) : 0;
+    html += `<div class="bar-row">
+      <span class="bar-area-label" title="${e.area}">${e.area}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${barPct}%;background:var(--red)"></div>
+      </div>
+      <span class="bar-val">${e.pendiente}</span>
+      <span style="width:240px;flex-shrink:0;font-family:'DM Mono',monospace;text-align:left">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--red-light);line-height:1">${pct}%</span>
+        <span style="font-size:10px;color:var(--text-muted);margin-left:6px">${e.pendiente} pend. / ${e.total} total</span>
+      </span>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+// ─── SECCIÓN 1: TOP ESPERA ────────────────────────────────────
+function renderTopEspera() {
+  const rows = DATA
+    .filter(r => r.respuesta?.toLowerCase() === 'pendiente' && r.espera > 0)
+    .sort((a, b) => b.espera - a.espera)
+    .slice(0, 15);
+
+  const tbody = document.getElementById('table-top-espera');
+  if (!tbody) return;
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="no-data">SIN TICKETS PENDIENTES</td></tr>'; return; }
+
+  tbody.innerHTML = rows.map(r => {
+    const dias   = r.espera > 24 ? `${Math.round(r.espera / 24)}d` : `${r.espera}h`;
+    const bClass = badgeClass(r.categoria);
+    return `<tr>
+      <td class="id-col">#${r.id}</td>
+      <td>${r.area}</td>
+      <td><span class="badge ${bClass}">${r.categoria}</span></td>
+      <td class="asunto-col" title="${r.asunto}">${r.asunto}</td>
+      <td class="espera-col">${dias}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── SECCIÓN 2: ABIERTOS POR ÁREA (con proporción) ────────────
+function renderAbiertosArea() {
+  const el = document.getElementById('chart-abiertos-area');
+  if (!el) return;
+
+  const map = {};
+  DATA.forEach(r => {
+    if (!map[r.area]) map[r.area] = { abierto: 0, total: 0 };
+    map[r.area].total++;
+    if (r.estado?.toLowerCase() === 'abierto') map[r.area].abierto++;
+  });
+
+  const entries = Object.entries(map)
+    .map(([area, v]) => ({ area, ...v }))
+    .filter(e => e.abierto > 0)
+    .sort((a, b) => b.abierto - a.abierto);
+
+  if (!entries.length) { el.innerHTML = '<div class="no-data">SIN TICKETS ABIERTOS</div>'; return; }
+
+  const maxAbiertos = entries[0].abierto;
+  let html = '';
+  entries.forEach(e => {
+    const barPct = maxAbiertos > 0 ? Math.round(e.abierto / maxAbiertos * 100) : 0;
+    const pct    = e.total > 0 ? Math.round(e.abierto / e.total * 100) : 0;
+    html += `<div class="bar-row">
+      <span class="bar-area-label" title="${e.area}">${e.area}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${barPct}%;background:var(--orange)"></div>
+      </div>
+      <span class="bar-val">${e.abierto}</span>
+      <span style="width:240px;flex-shrink:0;font-family:'DM Mono',monospace;text-align:left">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--orange);line-height:1">${pct}%</span>
+        <span style="font-size:10px;color:var(--text-muted);margin-left:6px">${e.abierto} ab. / ${e.total} total</span>
+      </span>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+// ─── SECCIÓN 3: STACKED BARRAS CATEGORÍAS POR SECCIÓN ─────────
+function renderStacked() {
+  const el = document.getElementById('chart-stacked');
+  if (!el) return;
+
+  // Recopilar categorías únicas
+  const allCats = [...new Set(DATA.map(r => r.categoria).filter(Boolean))];
+
+  // Construir mapa: {area: {cat: n}}
+  const map = {};
+  DATA.forEach(r => {
+    if (!map[r.area]) map[r.area] = {};
+    map[r.area][r.categoria] = (map[r.area][r.categoria] || 0) + 1;
+  });
+
+  const areas = Object.entries(map)
+    .map(([area, cats]) => ({ area, cats, total: Object.values(cats).reduce((s, v) => s + v, 0) }))
+    .sort((a, b) => b.total - a.total);
+
+  // Ordenar cats por volumen global
+  const globalCatTotals = {};
+  allCats.forEach(cat => {
+    globalCatTotals[cat] = DATA.filter(r => r.categoria === cat).length;
+  });
+  const sortedAllCats = [...allCats].sort((a, b) => globalCatTotals[b] - globalCatTotals[a]);
+
+  // Máximo total de tickets entre todas las áreas (para escalar el ancho de la barra)
+  const maxAreaTotal = Math.max(...areas.map(a => a.total), 1);
+
+  let html = '';
+  areas.forEach(({ area, cats, total }) => {
+    // Ordenar segmentos por % desc para esta área
+    const catEntries = sortedAllCats
+      .map(cat => ({ cat, n: cats[cat] || 0, pct: total > 0 ? Math.round((cats[cat] || 0) / total * 100) : 0 }))
+      .filter(e => e.n > 0)
+      .sort((a, b) => b.pct - a.pct);
+
+    const segs = catEntries.map(({ cat, n, pct }) => {
+      const col = catColor(cat);
+      return `<div class="stacked-seg" style="width:${pct}%;background:${col.dim};border-right:1px solid var(--bg)"
+               data-tip="${cat}: ${n} (${pct}%)"></div>`;
+    }).join('');
+
+    const breakdown = catEntries.map(({ cat, n, pct }) => {
+      const col = catColor(cat);
+      return `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;margin-top:6px">
+        <span style="width:7px;height:7px;border-radius:2px;background:${col.fill};flex-shrink:0;display:inline-block"></span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${col.light};line-height:1">${pct}%</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted)">${cat}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted)">(${n})</span>
+      </span>`;
+    }).join('');
+
+    html += `<div class="stacked-section">
+      <div class="stacked-header">
+        <span class="stacked-name">${area}</span>
+        <span class="stacked-total">${total} tickets</span>
+      </div>
+      <div class="stacked-track" style="height:10px;width:${Math.round(total/maxAreaTotal*100)}%">${segs}</div>
+      <div style="margin-top:2px;display:flex;flex-wrap:wrap">${breakdown}</div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ─── SECCIÓN 3: TOTAL POR CATEGORÍA ───────────────────────────
+function renderCategoriasTotal() {
+  const map = {};
+  DATA.forEach(r => {
+    if (r.categoria) map[r.categoria] = (map[r.categoria] || 0) + 1;
+  });
+  const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+  const total   = entries.reduce((s, [, v]) => s + v, 0);
+  const el      = document.getElementById('chart-categorias-total');
+  if (!el) return;
+
+  let html = '';
+  entries.forEach(([cat, val]) => {
+    const col    = catColor(cat);
+    const pct    = total > 0 ? Math.round(val / total * 100) : 0;
+    const barPct = entries[0][1] > 0 ? Math.round(val / entries[0][1] * 100) : 0;
+    html += `<div class="bar-row">
+      <span class="bar-area-label">${cat}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${barPct}%;background:${col.fill}"></div>
+      </div>
+      <span class="bar-val">${val}</span>
+      <span class="bar-pct">${pct}%</span>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+</script>
+</body>
+</html>

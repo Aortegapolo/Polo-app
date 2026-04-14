@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Ocupaciones · Club</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --red: #E8192C;
+    --red-light: #ff4d5e;
+    --red-dim: rgba(232,25,44,0.15);
+    --blue: #1542E8;
+    --blue-light: #4d6fff;
+    --blue-dim: rgba(21,66,232,0.15);
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f2f8;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --active-glow: 0 0 20px rgba(232,25,44,0.3);
+    --card-radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--red), var(--blue-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  #filter-badge {
+    display: none;
+    background: var(--red);
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #filter-badge:hover { background: var(--red-light); }
+  #filter-badge.visible { display: flex; align-items: center; gap: 6px; }
+
+  #file-input-wrapper {
+    position: relative;
+  }
+  #file-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #file-btn:hover { border-color: var(--blue-light); color: var(--text); }
+  #csv-file { display: none; }
+
+  .date-range {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+
+  /* LOADING */
+  #loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 64px);
+    gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); letter-spacing: 1px; }
+
+  /* MAIN */
+  #main { display: none; padding: 24px 32px 40px; }
+
+  /* ACTIVE FILTER BAR */
+  #active-filter-bar {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--red-dim);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  #active-filter-bar.visible { display: flex; }
+  .filter-tag {
+    background: var(--red-dim);
+    border: 1px solid var(--red);
+    color: var(--red-light);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+  #clear-filter-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    padding: 4px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+  #clear-filter-btn:hover { border-color: var(--red); color: var(--red-light); }
+
+  /* KPIs */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-card.alt::before { background: linear-gradient(90deg, var(--red), var(--blue)); }
+
+  .kpi-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .kpi-value.red { color: var(--red-light); }
+  .kpi-value.blue { color: var(--blue-light); }
+  .kpi-value.white { color: var(--text); }
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* CHARTS GRID */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .charts-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 20px 22px;
+    transition: border-color 0.2s;
+    position: relative;
+  }
+  .chart-card:hover { border-color: rgba(255,255,255,0.13); }
+  .chart-card.has-filter { border-color: var(--red); box-shadow: var(--active-glow); }
+
+  .chart-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chart-title-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .chart-title-dot.red { background: var(--red); }
+  .chart-title-dot.blue { background: var(--blue); }
+  .chart-title-dot.purple { background: #8b5cf6; }
+
+  canvas { max-height: 260px; }
+
+  /* CLICK HINT */
+  .click-hint {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-muted);
+    margin-top: 10px;
+    text-align: center;
+    letter-spacing: 1px;
+    opacity: 0.6;
+  }
+
+  /* TOP PISTAS TABLE */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 20px 22px;
+  }
+  .top-pistas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 1px solid var(--border); }
+  th {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 0 0 10px;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 8px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  td:first-child { color: var(--text); font-weight: 500; }
+  .bar-cell { position: relative; }
+  .bar-fill {
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    height: 4px;
+    border-radius: 2px;
+    opacity: 0.5;
+  }
+  .bar-val { position: relative; z-index: 1; font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  /* WEEKDAY HEATMAP */
+  .heatmap-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .heatmap-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); width: 24px; text-align: right; }
+  .heatmap-cell {
+    width: 100%;
+    height: 28px;
+    border-radius: 4px;
+    background: var(--surface2);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    border: 1px solid transparent;
+  }
+  .heatmap-cell:hover { transform: scaleY(1.15); }
+  .heatmap-cell.selected { border-color: var(--red); box-shadow: 0 0 8px rgba(232,25,44,0.4); }
+  .heatmap-hour-labels { display: flex; gap: 6px; padding-left: 30px; margin-bottom: 6px; }
+  .heatmap-hour-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text-muted); width: 100%; text-align: center; }
+
+  /* TOOLTIP */
+  .custom-tooltip {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 9999;
+    display: none;
+    min-width: 140px;
+  }
+  .custom-tooltip.visible { display: block; }
+  .custom-tooltip strong { color: var(--text); display: block; margin-bottom: 4px; font-family: 'DM Mono', monospace; font-size: 11px; }
+  .custom-tooltip span { color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 11px; }
+
+  /* NO DATA */
+  .no-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* SECTION HEADER */
+  .section-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin: 36px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    vertical-align: middle;
+  }
+  .section-header span.red { background: var(--red-dim); color: var(--red-light); border: 1px solid var(--red); }
+  .section-header span.blue { background: var(--blue-dim); color: var(--blue-light); border: 1px solid var(--blue); }
+
+  /* SPORT TABS */
+  .sport-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .sport-tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 7px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+  .sport-tab.active-padel { background: var(--red-dim); border-color: var(--red); color: var(--red-light); }
+  .sport-tab.active-tenis { background: var(--blue-dim); border-color: var(--blue); color: var(--blue-light); }
+  .sport-tab:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+  /* FILTERS ROW */
+  .filters-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .filter-select {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 7px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+    min-width: 130px;
+  }
+  .filter-select:focus { outline: none; border-color: var(--red); color: var(--text); }
+  .filter-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  /* SLOT TABLE (jugadores por pista/franja) */
+  .slot-table-wrapper { overflow-x: auto; }
+  .slot-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+  .slot-table th {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    text-align: center;
+  }
+  .slot-table th:first-child { text-align: left; }
+  .slot-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-size: 11px;
+    text-align: center;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .slot-table td:first-child {
+    color: var(--text);
+    font-weight: 500;
+    text-align: left;
+  }
+  .slot-table .pct-cell {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .slot-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .cell-heat-0  { color: var(--text-muted) !important; }
+  .cell-heat-1  { color: #4ade80 !important; }
+  .cell-heat-2  { color: #facc15 !important; }
+  .cell-heat-3  { color: #fb923c !important; }
+  .cell-heat-4  { color: #f87171 !important; }
+  .cell-heat-5  { color: #E8192C !important; }
+
+  /* OCCUPANCY SLOTS (franja % por día) */
+  .occ-slot {
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .occ-slot-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .occ-slot-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+    min-width: 115px;
+  }
+  .occ-slot-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    min-width: 58px;
+  }
+  .occ-slot-pct.high   { color: var(--red-light); }
+  .occ-slot-pct.medium { color: #fb923c; }
+  .occ-slot-pct.low    { color: #4ade80; }
+  .occ-bar-outer {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .occ-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .occ-types {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .occ-type-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .occ-type-tag .tag-name { color: var(--text-dim); margin-right: 4px; }
+  .occ-type-tag .tag-pct  { color: var(--text); font-weight: 500; }
+
+  /* DAILY OCCUPATION SUMMARY */
+  .daily-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .daily-summary-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .daily-summary-card .ds-sport {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .daily-summary-card .ds-sport.red { color: var(--red-light); }
+  .daily-summary-card .ds-sport.blue { color: var(--blue-light); }
+  .ds-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .ds-row:last-child { border-bottom: none; }
+  .ds-row .ds-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
+  .ds-row .ds-count { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); }
+  .ds-row .ds-pct   { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); }
+  .ds-pct-bar {
+    height: 3px;
+    border-radius: 2px;
+    margin-top: 3px;
+    transition: width 0.3s;
+  }
+
+  /* AGGREGATION TOGGLE */
+  .agg-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-left: 6px;
+  }
+  .agg-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 5px 12px;
+    border: none;
+    border-right: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .agg-btn:last-child { border-right: none; }
+  .agg-btn.active-padel { background: var(--red-dim); color: var(--red-light); }
+  .agg-btn:hover:not(.active-padel) { background: rgba(255,255,255,0.03); color: var(--text-dim); }
+
+  /* SCROLLABLE SLOT CONTAINER */
+  .slot-scroll { max-height: 460px; overflow-y: auto; padding-right: 4px; }
+  .slot-scroll::-webkit-scrollbar { width: 4px; }
+  .slot-scroll::-webkit-scrollbar-track { background: transparent; }
+  .slot-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .charts-grid-3 { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 900px) {
+    .charts-grid, .charts-grid-3 { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    #main { padding: 16px; }
+    .daily-summary-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:baseline;gap:18px">
+    <div class="logo">REAL CLUB DE POLO DE BARCELONA</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:var(--text-muted);border-left:1px solid var(--border);padding-left:18px">PISTAS</div>
+  </div>
+  <div class="header-right">
+    <span class="date-range" id="date-range-label">—</span>
+    <div id="filter-badge" onclick="clearAllFilters()">
+      <span>FILTRO ACTIVO</span>
+      <span>✕</span>
+    </div>
+  </div>
+</header>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>CARGANDO DATOS...</p>
+</div>
+
+<div id="main">
+  <div id="active-filter-bar">
+    <span>FILTRO:</span>
+    <span class="filter-tag" id="filter-tag-text">—</span>
+    <button id="clear-filter-btn" onclick="clearAllFilters()">✕ Limpiar filtro</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+<div class="kpi-card red">
+      <div class="kpi-label">Ocupaciones Únicas</div>
+      <div class="kpi-value red" id="kpi-reservas">—</div>
+      <div class="kpi-sub" id="kpi-reservas-sub"></div>
+    </div>
+    <div class="kpi-card alt">
+      <div class="kpi-label">Días con actividad</div>
+      <div class="kpi-value white" id="kpi-dias">—</div>
+      <div class="kpi-sub" id="kpi-dias-sub"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SECCIÓN B: % OCUPACIÓN POR HORA / DÍA                      -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section-header">
+    % OCUPACIÓN DE PISTAS
+    <span class="red">PÁDEL</span><span class="blue">TENIS</span>
+  </div>
+
+  <div class="filters-row">
+    <span class="filter-label">Deporte:</span>
+    <button class="sport-tab active-padel" id="tab-b-padel" onclick="setTabB('Padel')">PÁDEL</button>
+    <button class="sport-tab" id="tab-b-tenis" onclick="setTabB('Tenis')">TENIS</button>
+    <span class="filter-label" style="margin-left:10px">Día semana:</span>
+    <select class="filter-select" id="sel-b-dia" onchange="onBDiaChange()">
+      <option value="">Todos los días</option>
+      <option value="1">Lunes</option>
+      <option value="2">Martes</option>
+      <option value="3">Miércoles</option>
+      <option value="4">Jueves</option>
+      <option value="5">Viernes</option>
+      <option value="6">Sábado</option>
+      <option value="0">Domingo</option>
+    </select>
+    <span class="filter-label">Mes:</span>
+    <select class="filter-select" id="sel-b-mes" onchange="onBMesChange()">
+      <option value="">Todos los meses</option>
+      <option value="0">Enero</option><option value="1">Febrero</option>
+      <option value="2">Marzo</option><option value="3">Abril</option>
+      <option value="4">Mayo</option><option value="5">Junio</option>
+      <option value="6">Julio</option><option value="7">Agosto</option>
+      <option value="8">Septiembre</option><option value="9">Octubre</option>
+      <option value="10">Noviembre</option><option value="11">Diciembre</option>
+    </select>
+    <span class="filter-label">Día concreto:</span>
+    <select class="filter-select" id="sel-b-fecha" onchange="renderSeccionB()" style="min-width:150px">
+      <option value="">Todas las fechas</option>
+    </select>
+    <span class="filter-label">Hora:</span>
+    <select class="filter-select" id="sel-b-hora" onchange="renderSeccionB()" style="min-width:110px">
+      <option value="">Todas las horas</option>
+      <option value="6">06:00</option><option value="7">07:00</option>
+      <option value="8">08:00</option><option value="9">09:00</option>
+      <option value="10">10:00</option><option value="11">11:00</option>
+      <option value="12">12:00</option><option value="13">13:00</option>
+      <option value="14">14:00</option><option value="15">15:00</option>
+      <option value="16">16:00</option><option value="17">17:00</option>
+      <option value="18">18:00</option><option value="19">19:00</option>
+      <option value="20">20:00</option><option value="21">21:00</option>
+      <option value="22">22:00</option><option value="23">23:00</option>
+    </select>
+    <span class="filter-label" style="margin-left:10px">Agregación:</span>
+    <div class="agg-toggle">
+      <button class="agg-btn active-padel" id="btn-b-mediana" onclick="setAggModeB('mediana')">MEDIANA</button>
+      <button class="agg-btn" id="btn-b-media" onclick="setAggModeB('media')">MEDIA</button>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title"><span class="chart-title-dot blue"></span>% PISTAS OCUPADAS + DESGLOSE POR TIPO (ORDENADO MAYOR → MENOR)</div>
+    <div class="slot-scroll" id="seccion-b-content"><div class="no-data">CARGANDO...</div></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SECCIÓN C: OCUPACIÓN POR DÍA / MES                        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section-header">
+    OCUPACIÓN POR DÍA · MES
+    <span class="red">PÁDEL</span><span class="blue">TENIS</span>
+  </div>
+
+  <div class="filters-row">
+    <span class="filter-label">Día semana:</span>
+    <select class="filter-select" id="sel-c-dia" onchange="onCDiaChange()">
+      <option value="">Todos los días</option>
+      <option value="1">Lunes</option>
+      <option value="2">Martes</option>
+      <option value="3">Miércoles</option>
+      <option value="4">Jueves</option>
+      <option value="5">Viernes</option>
+      <option value="6">Sábado</option>
+      <option value="0">Domingo</option>
+    </select>
+    <span class="filter-label">Mes:</span>
+    <select class="filter-select" id="sel-c-mes" onchange="onCMesChange()">
+      <option value="">Todos los meses</option>
+      <option value="0">Enero</option><option value="1">Febrero</option>
+      <option value="2">Marzo</option><option value="3">Abril</option>
+      <option value="4">Mayo</option><option value="5">Junio</option>
+      <option value="6">Julio</option><option value="7">Agosto</option>
+      <option value="8">Septiembre</option><option value="9">Octubre</option>
+      <option value="10">Noviembre</option><option value="11">Diciembre</option>
+    </select>
+    <span class="filter-label">Día concreto:</span>
+    <select class="filter-select" id="sel-c-fecha" onchange="renderSeccionC()" style="min-width:150px">
+      <option value="">Todas las fechas</option>
+    </select>
+  </div>
+
+  <div id="seccion-c-content" class="daily-summary-grid">
+    <div class="no-data" style="grid-column:1/-1">CARGANDO...</div>
+  </div>
+
+</div><!-- end #main -->
+
+<div class="custom-tooltip" id="tooltip">
+  <strong id="tooltip-title"></strong>
+  <span id="tooltip-body"></span>
+</div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────
+let ALL_DATA = [];      // raw rows
+let RESERVATIONS = [];  // one row per unique reservation ID
+let FILTERED = [];      // currently filtered reservations
+let ACTIVE_FILTERS = {};
+let CHARTS = {};
+
+// Fecha de corte: hasta el 29-01-2026 hay 20 pistas de pádel
+const ENERO_20_PISTAS_CUTOFF = '29-01-2026';
+
+// ─── PARSE JSON (desde API) ───────────────────────────────────
+function parseJSON(data) {
+  const rows = [];
+
+  data.forEach(r => {
+    const id     = String(r.id   || '').trim();
+    const pista  = String(r.pista || '').trim();
+    const cat    = String(r.cat   || '').trim();
+    const tipo   = String(r.tipo  || '').trim();
+    const nsocio = r.nsocio ? String(r.nsocio).trim() : '';
+    const nombre = r.nombre ? String(r.nombre).trim() : '';
+    const fecha  = String(r.fecha   || '').trim();  // "DD-MM-YYYY"
+    const checkin  = String(r.checkin  || '').trim(); // "HH:MM"
+    const checkout = String(r.checkout || '').trim(); // "HH:MM"
+
+    if (!id || !fecha || !tipo) return;
+
+    const [d, m, y] = fecha.split('-');
+    if (!d || !m || !y) return;
+    const dateObj = new Date(`${y}-${m}-${d}`);
+
+    const [hIn,  mIn]  = checkin.split(':').map(Number);
+    const [hOut, mOut] = checkout.split(':').map(Number);
+    const checkinMin  = (hIn  || 0) * 60 + (mIn  || 0);
+    const checkinHour = hIn || 0;
+    const checkoutMin = (hOut || 0) * 60 + (mOut || 0);
+
+    rows.push({ id, pista, cat, tipo, nsocio, nombre, fecha, dateObj,
+                checkinHour, checkinMin, checkoutMin, checkin, checkout });
+  });
+
+  ALL_DATA = rows;
+  buildPlayersMap();
+
+  const seen = new Set();
+  RESERVATIONS = rows.filter(r => {
+    if (seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
+  });
+
+  FILTERED = [...RESERVATIONS];
+  initDashboard();
+}
+
+// ─── CARGA DESDE API ──────────────────────────────────────────
+fetch('/api/pistas')
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(data => parseJSON(data))
+  .catch(err => {
+    document.getElementById('loading').innerHTML = `
+      <div style="text-align:center">
+        <p style="font-family:'DM Mono',monospace;font-size:13px;color:#6b7280;letter-spacing:1px;margin-bottom:20px">
+          Error cargando datos (${err.message}).<br>Comprueba que el servidor está activo.
+        </p>
+      </div>`;
+  });
+
+// ─── INIT ─────────────────────────────────────────────────────
+function initDashboard() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+
+  const dates = RESERVATIONS.map(r => r.dateObj).filter(d => !isNaN(d));
+  const minDate = new Date(Math.min(...dates));
+  const maxDate = new Date(Math.max(...dates));
+  document.getElementById('date-range-label').textContent =
+    `${fmt(minDate)} → ${fmt(maxDate)}`;
+
+  // Populate date selectors with all unique dates (sorted chronologically)
+  populateDateSelectors();
+
+  renderAll();
+}
+
+function fmt(d) {
+  return d.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+// Popula los selectores de "Día concreto" con las fechas únicas del CSV
+function populateDateSelectors() {
+  const uniqueDates = [...new Set(RESERVATIONS
+    .filter(r => !isNaN(r.dateObj))
+    .map(r => r.fecha)
+  )].sort((a, b) => {
+    const [da,ma,ya] = a.split('-');
+    const [db,mb,yb] = b.split('-');
+    return new Date(`${ya}-${ma}-${da}`) - new Date(`${yb}-${mb}-${db}`);
+  });
+
+  ['sel-b-fecha', 'sel-c-fecha'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    // Keep first option
+    while (sel.options.length > 1) sel.remove(1);
+    uniqueDates.forEach(fecha => {
+      const [d, m, y] = fecha.split('-');
+      const dateObj = new Date(`${y}-${m}-${d}`);
+      const label = dateObj.toLocaleDateString('es-ES', { weekday:'short', day:'2-digit', month:'short' });
+      const opt = document.createElement('option');
+      opt.value = fecha;
+      opt.textContent = label;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function renderAll() {
+  updateKPIs();
+  renderSeccionB();
+  renderSeccionC();
+}
+
+// ─── KPIs ─────────────────────────────────────────────────────
+function updateKPIs() {
+  const data = FILTERED;
+  const allRows = filterRows(ALL_DATA);
+
+  const uniqueIds     = new Set(data.map(r => r.id));
+  const uniquePlayers = new Set(allRows.filter(r => r.nsocio).map(r => r.nsocio));
+  const uniqueDays    = new Set(data.map(r => r.fecha)).size;
+
+  set('kpi-jugadores', uniquePlayers.size.toLocaleString('es-ES'));
+  set('kpi-jugadores-sub', `socios identificados`);
+  set('kpi-reservas', uniqueIds.size.toLocaleString('es-ES'));
+  set('kpi-reservas-sub', `IDs únicos`);
+  set('kpi-dias', uniqueDays.toLocaleString('es-ES'));
+  set('kpi-dias-sub', `días con ocupaciones`);
+}
+
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ─── FILTER HELPERS ───────────────────────────────────────────
+function filterRows(rows) {
+  let d = rows;
+  if (ACTIVE_FILTERS.tipo)      d = d.filter(r => r.tipo === ACTIVE_FILTERS.tipo);
+  if (ACTIVE_FILTERS.categoria) d = d.filter(r => r.cat === ACTIVE_FILTERS.categoria);
+  if (ACTIVE_FILTERS.hora !== undefined) d = d.filter(r => r.checkinHour === ACTIVE_FILTERS.hora);
+  if (ACTIVE_FILTERS.dia !== undefined)  d = d.filter(r => r.dateObj.getDay() === ACTIVE_FILTERS.dia);
+  return d;
+}
+
+function applyFilter(key, value) {
+  if (ACTIVE_FILTERS[key] === value) {
+    delete ACTIVE_FILTERS[key];
+  } else {
+    ACTIVE_FILTERS[key] = value;
+  }
+  FILTERED = filterRows(RESERVATIONS);
+  updateFilterBadge();
+  renderAll();
+}
+
+function clearAllFilters() {
+  ACTIVE_FILTERS = {};
+  FILTERED = [...RESERVATIONS];
+  updateFilterBadge();
+  renderAll();
+}
+
+function updateFilterBadge() {
+  const keys = Object.keys(ACTIVE_FILTERS);
+  const badge = document.getElementById('filter-badge');
+  const bar = document.getElementById('active-filter-bar');
+  const tag = document.getElementById('filter-tag-text');
+
+  if (keys.length === 0) {
+    badge.classList.remove('visible');
+    bar.classList.remove('visible');
+    return;
+  }
+
+  badge.classList.add('visible');
+  bar.classList.add('visible');
+
+  const labels = keys.map(k => {
+    const v = ACTIVE_FILTERS[k];
+    if (k === 'hora') return `Hora ${v}:00`;
+    if (k === 'dia')  return ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][v];
+    return v;
+  });
+  tag.textContent = labels.join(' + ');
+}
+
+// ─── UTILS ────────────────────────────────────────────────────
+function destroyChart(key) {
+  if (CHARTS[key]) { CHARTS[key].destroy(); delete CHARTS[key]; }
+}
+
+function median(arr) {
+  if (!arr.length) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function mean(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce((s, v) => s + v, 0) / arr.length;
+}
+
+function aggB(arr) {
+  return aggModeB === 'mediana' ? median(arr) : mean(arr);
+}
+
+const DAY_NAMES  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+let PLAYERS_PER_ID = {};
+function buildPlayersMap() {
+  PLAYERS_PER_ID = {};
+  ALL_DATA.forEach(r => {
+    PLAYERS_PER_ID[r.id] = (PLAYERS_PER_ID[r.id]||0) + 1;
+  });
+}
+
+function jugadoresReales(reservas) {
+  return reservas.reduce((s, r) => s + (PLAYERS_PER_ID[r.id] || 0), 0);
+}
+
+// Devuelve si la ocupación cuenta en la hora H
+// (checkin <= H:00 y checkout > H:00)
+function reservaOcupaHora(r, h) {
+  const hStart = h * 60;       // inicio de la hora H en minutos
+  return r.checkinMin <= hStart && r.checkoutMin > hStart;
+}
+
+function countPistas(cat) {
+  return new Set(RESERVATIONS.filter(r => r.cat === cat).map(r => r.pista)).size;
+}
+
+function slotLabel(h) { return `${String(h).padStart(2,'0')}:00`; }
+
+function heatClass(pct) {
+  if (pct === 0)  return 'cell-heat-0';
+  if (pct < 20)   return 'cell-heat-1';
+  if (pct < 40)   return 'cell-heat-2';
+  if (pct < 60)   return 'cell-heat-3';
+  if (pct < 80)   return 'cell-heat-4';
+  return 'cell-heat-5';
+}
+
+// Filtra RESERVATIONS por deporte, día semana, mes y fecha concreta
+function filterResData(cat, diaVal, mesVal, fechaVal) {
+  let d = RESERVATIONS.filter(r => r.cat === cat);
+  if (fechaVal) {
+    d = d.filter(r => r.fecha === fechaVal);
+  } else {
+    if (diaVal !== '') d = d.filter(r => !isNaN(r.dateObj) && r.dateObj.getDay() === parseInt(diaVal));
+    if (mesVal !== '') d = d.filter(r => !isNaN(r.dateObj) && r.dateObj.getMonth() === parseInt(mesVal));
+  }
+  return d;
+}
+
+// Filtra ALL_DATA por deporte, día semana, mes y fecha concreta
+function filterAllData(cat, diaVal, mesVal, fechaVal) {
+  let d = ALL_DATA.filter(r => r.cat === cat);
+  if (fechaVal) {
+    d = d.filter(r => r.fecha === fechaVal);
+  } else {
+    if (diaVal !== '') d = d.filter(r => !isNaN(r.dateObj) && r.dateObj.getDay() === parseInt(diaVal));
+    if (mesVal !== '') d = d.filter(r => !isNaN(r.dateObj) && r.dateObj.getMonth() === parseInt(mesVal));
+  }
+  return d;
+}
+
+// Número de pistas de pádel activas para una fecha dada
+// Hasta 29-01-2026: 20 pistas. Desde 30-01-2026: 24 pistas.
+function pistasActivasPadel(fecha) {
+  if (!fecha) return null; // null = variable (hay que calcularlo por día)
+  const [d, m, y] = fecha.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  const cutoff = new Date(2026, 0, 29); // 29-01-2026
+  if (m === 1 && y === 2026 && dt <= cutoff) return 20;
+  return 24;
+}
+
+// Dado un conjunto de fechas únicas, calcula el total de "pista-días" para el denominador
+// teniendo en cuenta el cambio de pistas en enero
+function calcTotalPistasDias(cat, uniqueFechas, totalPistasGeneral) {
+  if (cat !== 'Padel') {
+    return totalPistasGeneral * uniqueFechas.length;
+  }
+  // Para pádel, aplicar 20 pistas hasta el 29-01-2026
+  return uniqueFechas.reduce((sum, fecha) => {
+    return sum + pistasActivasPadel(fecha);
+  }, 0);
+}
+
+// ─── ESTADO TABS ──────────────────────────────────────────────
+let SPORT_B = 'Padel';
+let aggModeB = 'mediana'; // 'mediana' | 'media'
+
+function setTabB(sport) {
+  SPORT_B = sport;
+  document.getElementById('tab-b-padel').className = 'sport-tab' + (sport==='Padel' ? ' active-padel' : '');
+  document.getElementById('tab-b-tenis').className = 'sport-tab' + (sport==='Tenis' ? ' active-tenis' : '');
+  renderSeccionB();
+}
+
+function setAggModeB(mode) {
+  aggModeB = mode;
+  document.getElementById('btn-b-mediana').classList.toggle('active-padel', mode === 'mediana');
+  document.getElementById('btn-b-media').classList.toggle('active-padel', mode === 'media');
+  renderSeccionB();
+}
+
+// ─── GESTIÓN FILTROS CON FECHA CONCRETA ───────────────────────
+// Cuando se selecciona una fecha concreta, limpiar día semana y mes (y viceversa)
+function onBDiaChange() {
+  document.getElementById('sel-b-fecha').value = '';
+  renderSeccionB();
+}
+function onBMesChange() {
+  document.getElementById('sel-b-fecha').value = '';
+  renderSeccionB();
+}
+function onCDiaChange() {
+  document.getElementById('sel-c-fecha').value = '';
+  renderSeccionC();
+}
+function onCMesChange() {
+  document.getElementById('sel-c-fecha').value = '';
+  renderSeccionC();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECCIÓN B: % Ocupación media por HORA ÚNICA
+// Hora H está ocupada por una ocupación si checkin <= H:00 y checkout > H:00
+// % = ocupaciones en hora H / (pistas × días)
+// ═══════════════════════════════════════════════════════════════
+function renderSeccionB() {
+  const cat      = SPORT_B;
+  const diaVal   = document.getElementById('sel-b-dia')?.value ?? '';
+  const mesVal   = document.getElementById('sel-b-mes')?.value ?? '';
+  const fechaVal = document.getElementById('sel-b-fecha')?.value ?? '';
+  const horaVal  = document.getElementById('sel-b-hora')?.value ?? '';
+  const el       = document.getElementById('seccion-b-content');
+  if (!el || RESERVATIONS.length === 0) return;
+
+  // Si hay fecha concreta, limpiar los otros filtros visualmente
+  if (fechaVal) {
+    document.getElementById('sel-b-dia').value = '';
+    document.getElementById('sel-b-mes').value = '';
+  }
+
+  const res = filterResData(cat, diaVal, mesVal, fechaVal);
+  if (res.length === 0) { el.innerHTML = '<div class="no-data">SIN DATOS PARA ESA SELECCIÓN</div>'; return; }
+
+  // Total pistas del deporte (denominador base)
+  const totalPistasGeneral = new Set(RESERVATIONS.filter(r => r.cat === cat).map(r => r.pista)).size;
+
+  // Días únicos en el periodo filtrado
+  const uniqueFechas = [...new Set(res.filter(r => !isNaN(r.dateObj)).map(r => r.fecha))];
+  const nDias = uniqueFechas.length || 1;
+
+  // Rango de horas de 8 a 23 (o derivado de los datos)
+  const allCheckinHours = res.map(r => Math.floor(r.checkinMin / 60));
+  const allCheckoutHours = res.map(r => Math.ceil(r.checkoutMin / 60));
+  const minH = Math.min(...allCheckinHours);
+  const maxH = Math.min(Math.max(...allCheckoutHours), 23);
+  const hours = [];
+  for (let h = minH; h <= maxH; h++) hours.push(h);
+
+  // Agrupar reservas por fecha
+  const resByFecha = {};
+  res.forEach(r => {
+    if (!resByFecha[r.fecha]) resByFecha[r.fecha] = [];
+    resByFecha[r.fecha].push(r);
+  });
+
+  // Para cada hora: calcular % pistas ocupadas por día y promediar
+  // También acumular tipos para el desglose global
+  const byHour = {};
+  hours.forEach(h => { byHour[h] = { total: 0, tipos: {} }; });
+
+  // Para cada día, para cada hora: contar pistas distintas ocupadas → % ese día
+  // Luego promediar los % diarios
+  const pctDiariosPorHora = {};
+  hours.forEach(h => { pctDiariosPorHora[h] = []; });
+
+  uniqueFechas.forEach(fecha => {
+    const pistasEseDia = cat === 'Padel' ? pistasActivasPadel(fecha) : totalPistasGeneral;
+    const resDia = resByFecha[fecha] || [];
+
+    hours.forEach(h => {
+      const pistasOcupadas = new Set();
+      resDia.forEach(r => {
+        if (reservaOcupaHora(r, h)) {
+          pistasOcupadas.add(r.pista);
+        }
+      });
+      const pctDia = pistasEseDia > 0 ? (pistasOcupadas.size / pistasEseDia * 100) : 0;
+      pctDiariosPorHora[h].push(pctDia);
+    });
+  });
+
+  // Para el desglose por tipo: proporción de cada tipo sobre las pistas ocupadas
+  // Cada pista se asigna a un solo tipo (el de la primera reserva que la ocupe)
+  // tiposProporcion[h][tipo] = array de proporciones diarias (0-100) sobre pistas ocupadas
+  const tiposProporcion = {};
+  hours.forEach(h => { tiposProporcion[h] = {}; });
+
+  uniqueFechas.forEach(fecha => {
+    const resDia = resByFecha[fecha] || [];
+
+    hours.forEach(h => {
+      // Asignar cada pista al tipo de la primera reserva que la ocupe
+      const pistaAsignada = {};  // pista → tipo
+      resDia.forEach(r => {
+        if (reservaOcupaHora(r, h) && !pistaAsignada[r.pista]) {
+          pistaAsignada[r.pista] = r.tipo;
+        }
+      });
+
+      // Contar pistas por tipo
+      const conteoPorTipo = {};
+      const totalOcupadas = Object.keys(pistaAsignada).length;
+      Object.values(pistaAsignada).forEach(tipo => {
+        conteoPorTipo[tipo] = (conteoPorTipo[tipo] || 0) + 1;
+      });
+
+      // Guardar proporción diaria de cada tipo sobre pistas ocupadas
+      Object.entries(conteoPorTipo).forEach(([tipo, cnt]) => {
+        if (!tiposProporcion[h][tipo]) tiposProporcion[h][tipo] = [];
+        tiposProporcion[h][tipo].push(totalOcupadas > 0 ? (cnt / totalOcupadas * 100) : 0);
+      });
+    });
+  });
+
+  // Calcular medianas: % ocupación total y proporción por tipo
+  const ocupMedia = {};
+  const tiposMedia = {};  // tiposMedia[h][tipo] = mediana de proporción sobre pistas ocupadas
+  hours.forEach(h => {
+    const arr = pctDiariosPorHora[h];
+    ocupMedia[h] = aggB(arr);
+
+    tiposMedia[h] = {};
+    Object.entries(tiposProporcion[h]).forEach(([tipo, arrT]) => {
+      // Rellenar con 0 los días que no tienen ese tipo (para incluirlos en la mediana)
+      const padded = [...arrT];
+      while (padded.length < nDias) padded.push(0);
+      tiposMedia[h][tipo] = aggB(padded);
+    });
+
+    // Normalizar para que los % de tipo sumen 100
+    const tipoSum = Object.values(tiposMedia[h]).reduce((s, v) => s + v, 0);
+    if (tipoSum > 0) {
+      Object.keys(tiposMedia[h]).forEach(t => {
+        tiposMedia[h][t] = tiposMedia[h][t] / tipoSum * 100;
+      });
+    }
+  });
+
+  // Ordenar por ocupación descendente
+  let sortedHours = hours.slice().sort((a,b) => ocupMedia[b] - ocupMedia[a]);
+  // Filtrar por hora concreta si se ha seleccionado
+  if (horaVal !== '') {
+    const horaInt = parseInt(horaVal);
+    sortedHours = sortedHours.filter(h => h === horaInt);
+  }
+  const accentColor = cat === 'Padel' ? '#E8192C' : '#1542E8';
+
+  // Etiqueta descriptiva del filtro activo
+  let filterDesc = '';
+  if (fechaVal) {
+    const [d,m,y] = fechaVal.split('-');
+    const dt = new Date(y, m-1, d);
+    filterDesc = dt.toLocaleDateString('es-ES', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  } else {
+    const diaName = diaVal !== '' ? DAY_NAMES[parseInt(diaVal)] : 'todos los días';
+    const mesName = mesVal !== '' ? MONTH_NAMES[parseInt(mesVal)] : 'todos los meses';
+    filterDesc = `${diaName} · ${mesName}`;
+  }
+
+  // Nota sobre pistas para el denominador
+  const pistasDenomDesc = (cat === 'Padel' && !fechaVal && (mesVal === '' || mesVal === '0'))
+    ? `20 pistas (hasta 29 ene) / 24 pistas (resto)`
+    : (cat === 'Padel' && fechaVal)
+      ? `${pistasActivasPadel(fechaVal)} pistas`
+      : `${totalPistasGeneral} pistas`;
+
+  let html = `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-bottom:12px">
+    ${cat.toUpperCase()} · ${filterDesc} · ${pistasDenomDesc} · ${nDias} día${nDias !== 1 ? 's' : ''} · % = ${aggModeB} diaria de pistas ocupadas / pistas disponibles
+  </div>`;
+
+  sortedHours.forEach(h => {
+    if (ocupMedia[h] === 0) return;
+
+    const pct      = Math.round(ocupMedia[h]);
+    const pctCap   = Math.min(pct, 100);
+    const pctClass = pct >= 50 ? 'high' : pct >= 25 ? 'medium' : 'low';
+    const tipos    = Object.entries(tiposMedia[h]).sort((a,b) => b[1]-a[1]);
+
+    html += `<div class="occ-slot">
+      <div class="occ-slot-header">
+        <span class="occ-slot-time">${slotLabel(h)}</span>
+        <span class="occ-slot-pct ${pctClass}">${pctCap}%</span>
+        <div class="occ-bar-outer">
+          <div class="occ-bar-fill" style="width:${pctCap}%;background:${accentColor}"></div>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);min-width:70px;text-align:right"></span>
+      </div>
+      <div class="occ-types">`;
+
+    tipos.forEach(([tipo, tipoPct]) => {
+      const tPct = Math.round(tipoPct);
+      html += `<span class="occ-type-tag">
+        <span class="tag-name">${tipo}</span>
+        <span class="tag-pct">${tPct}%</span>
+      </span>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  if (!html.includes('occ-slot')) { el.innerHTML = '<div class="no-data">SIN HORAS CON ACTIVIDAD</div>'; return; }
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECCIÓN C: Ocupación por tipo, día y mes — separado por deporte
+// ═══════════════════════════════════════════════════════════════
+function renderSeccionC() {
+  const diaVal   = document.getElementById('sel-c-dia')?.value ?? '';
+  const mesVal   = document.getElementById('sel-c-mes')?.value ?? '';
+  const fechaVal = document.getElementById('sel-c-fecha')?.value ?? '';
+  const el       = document.getElementById('seccion-c-content');
+  if (!el || RESERVATIONS.length === 0) return;
+
+  if (fechaVal) {
+    document.getElementById('sel-c-dia').value = '';
+    document.getElementById('sel-c-mes').value = '';
+  }
+
+  let filterDesc = '';
+  if (fechaVal) {
+    const [d,m,y] = fechaVal.split('-');
+    const dt = new Date(y, m-1, d);
+    filterDesc = dt.toLocaleDateString('es-ES', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  } else {
+    const diaName = diaVal !== '' ? DAY_NAMES[parseInt(diaVal)] : 'todos los días';
+    const mesName = mesVal !== '' ? MONTH_NAMES[parseInt(mesVal)] : 'todos los meses';
+    filterDesc = `${diaName} / ${mesName}`;
+  }
+
+  let html = '';
+
+  ['Padel', 'Tenis'].forEach(cat => {
+    const res         = filterResData(cat, diaVal, mesVal, fechaVal);
+    const totalPistas = new Set(RESERVATIONS.filter(r => r.cat === cat).map(r => r.pista)).size || 1;
+    const totalRes    = res.length;
+
+    const tipos = {};
+    res.forEach(r => { tipos[r.tipo] = (tipos[r.tipo]||0)+1; });
+    const sortedTipos  = Object.entries(tipos).sort((a,b) => b[1]-a[1]);
+    const maxResTipo   = Math.max(...Object.values(tipos), 1);
+
+    const colorClass  = cat === 'Padel' ? 'red' : 'blue';
+    const accentColor = cat === 'Padel' ? 'var(--red)' : 'var(--blue)';
+
+    html += `<div class="daily-summary-card">
+      <div class="ds-sport ${colorClass}">${cat.toUpperCase()} · ${filterDesc}</div>`;
+
+    if (totalRes === 0) {
+      html += `<div class="no-data" style="height:60px">SIN DATOS</div>`;
+    } else {
+      html += `<div class="ds-row">
+        <span class="ds-label">TOTAL OCUPACIONES</span>
+        <span class="ds-count">${totalRes.toLocaleString('es-ES')}</span>
+        <span class="ds-pct" style="color:var(${cat==='Padel'?'--red-light':'--blue-light'})">100%</span>
+      </div>
+      <div class="ds-row">
+        <span class="ds-label">PISTAS ${cat.toUpperCase()}</span>
+        <span class="ds-count">${totalPistas}</span>
+        <span class="ds-pct">&nbsp;</span>
+      </div>
+      <div style="height:6px"></div>`;
+
+      sortedTipos.forEach(([tipo, cnt]) => {
+        const pct    = totalRes > 0 ? Math.round(cnt / totalRes * 100) : 0;
+        const barPct = maxResTipo > 0 ? Math.round(cnt / maxResTipo * 100) : 0;
+        html += `<div class="ds-row">
+          <span class="ds-label">${tipo.toUpperCase()}</span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--text);flex:1;text-align:center">${pct}%</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);min-width:70px;text-align:right">${cnt.toLocaleString('es-ES')} ocup.</span>
+        </div>
+        <div style="padding:0 0 6px">
+          <div class="ds-pct-bar" style="width:${barPct}%;background:${accentColor};opacity:0.7;max-width:100%"></div>
+        </div>`;
+      });
+    }
+
+    html += '</div>';
+  });
+
+  // Tarjeta comparativa
+  const resP     = filterResData('Padel', diaVal, mesVal, fechaVal);
+  const resT     = filterResData('Tenis', diaVal, mesVal, fechaVal);
+  const totalP   = resP.length;
+  const totalT   = resT.length;
+  const totalAll = totalP + totalT || 1;
+  const padelPct = Math.round(totalP / totalAll * 100);
+  const tenisPct = Math.round(totalT / totalAll * 100);
+
+  html += `<div class="daily-summary-card">
+    <div class="ds-sport" style="color:var(--text-dim)">COMPARATIVA · ${filterDesc}</div>
+    <div class="ds-row">
+      <span class="ds-label" style="color:var(--red-light)">PÁDEL</span>
+      <span class="ds-count">${totalP.toLocaleString('es-ES')} ocup.</span>
+      <span class="ds-pct" style="color:var(--red-light)">${padelPct}%</span>
+    </div>
+    <div style="padding:0 0 8px">
+      <div class="ds-pct-bar" style="width:${padelPct}%;background:var(--red);max-width:100%"></div>
+    </div>
+    <div class="ds-row">
+      <span class="ds-label" style="color:var(--blue-light)">TENIS</span>
+      <span class="ds-count">${totalT.toLocaleString('es-ES')} ocup.</span>
+      <span class="ds-pct" style="color:var(--blue-light)">${tenisPct}%</span>
+    </div>
+    <div style="padding:0 0 8px">
+      <div class="ds-pct-bar" style="width:${tenisPct}%;background:var(--blue);max-width:100%"></div>
+    </div>
+    <div class="ds-row" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+      <span class="ds-label">TOTAL OCUPACIONES</span>
+      <span class="ds-count">${totalAll.toLocaleString('es-ES')}</span>
+      <span class="ds-pct">100%</span>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+}
+</script>
+</body>
+</html>
