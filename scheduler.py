@@ -1,3 +1,4 @@
+import gc
 import json
 import os
 import logging
@@ -16,14 +17,20 @@ def ensure_cache_dir():
     os.makedirs(CACHE_DIR, exist_ok=True)
 
 
+def _write_cache(filename, data):
+    path = os.path.join(CACHE_DIR, filename)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, default=str)
+
+
 def refresh_accesos():
     logger.info("Actualizando accesos...")
     try:
         data = accesos.clean()
-        path = os.path.join(CACHE_DIR, "accesos.json")
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, default=str)
+        _write_cache("accesos.json", data)
         logger.info(f"accesos.json actualizado: {len(data)} registros")
+        del data
+        gc.collect()
     except Exception as e:
         logger.error(f"Error actualizando accesos: {e}")
 
@@ -32,10 +39,10 @@ def refresh_pistas():
     logger.info("Actualizando pistas...")
     try:
         data = pistas.clean()
-        path = os.path.join(CACHE_DIR, "pistas.json")
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, default=str)
+        _write_cache("pistas.json", data)
         logger.info(f"pistas.json actualizado: {len(data)} registros")
+        del data
+        gc.collect()
     except Exception as e:
         logger.error(f"Error actualizando pistas: {e}")
 
@@ -44,10 +51,10 @@ def refresh_tickets():
     logger.info("Actualizando tickets...")
     try:
         data = tickets.clean()
-        path = os.path.join(CACHE_DIR, "tickets.json")
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, default=str)
+        _write_cache("tickets.json", data)
         logger.info(f"tickets.json actualizado: {len(data)} registros")
+        del data
+        gc.collect()
     except Exception as e:
         logger.error(f"Error actualizando tickets: {e}")
 

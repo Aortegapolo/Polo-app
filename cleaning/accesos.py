@@ -29,6 +29,7 @@ def clean():
             client_name AS usuario,
             event_id
         FROM biostar_event
+        WHERE datetime >= '2026-01-01 00:00:00'
     """
     df = pd.read_sql(query, engine)
 
