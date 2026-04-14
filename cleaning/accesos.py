@@ -1,4 +1,4 @@
-import pandas as pd
+from sqlalchemy import text
 from db import get_engine
 
 
@@ -9,38 +9,21 @@ def clean():
     Devuelve una lista de dicts con las columnas:
         fecha         : str  "YYYY-MM-DD HH:MM:SS"
         dispositivo   : str  nombre del dispositivo de acceso
-        grupo_usuario : str  grupo al que pertenece el usuario
+        grupo_usuario : str  grupo al que pertenece el usuario (pendiente join)
         evento        : str  tipo de evento registrado
-
-    Pasos de limpieza: pendiente de definir por el usuario.
     """
-    engine = get_engine()
-
-    # ── EXTRACCIÓN ────────────────────────────────────────────────
-    # Columnas reales de biostar_event:
-    #   datetime    → fecha
-    #   device_name → dispositivo
-    #   client_name → usuario (pendiente: grupo_usuario vendrá de join con client)
-    #   event_id    → identificador numérico del tipo de evento
-    query = """
+    query = text("""
         SELECT
-            datetime    AS fecha,
-            device_name AS dispositivo,
-            client_name AS usuario,
-            event_id
+            DATE_FORMAT(datetime, '%Y-%m-%d %H:%i:%s') AS fecha,
+            device_name                                 AS dispositivo,
+            NULL                                        AS grupo_usuario,
+            CAST(event_id AS CHAR)                      AS evento
         FROM biostar_event
         WHERE datetime >= '2026-01-01 00:00:00'
-    """
-    df = pd.read_sql(query, engine)
+        ORDER BY datetime ASC
+    """)
 
-    # ── LIMPIEZA ─────────────────────────────────────────────────
-    # Los pasos de limpieza se añadirán aquí según indicaciones
+    with get_engine().connect() as conn:
+        rows = conn.execute(query).mappings().all()
 
-    # ── SALIDA ───────────────────────────────────────────────────
-    # grupo_usuario: pendiente de join con tabla client
-    # De momento se deja vacío para que el dashboard lo trate como "No Data"
-    df['grupo_usuario'] = None
-    df['evento'] = df['event_id'].astype(str)
-    df['fecha']  = df['fecha'].astype(str)
-
-    return df[["fecha", "dispositivo", "grupo_usuario", "evento"]].to_dict(orient="records")
+    return [dict(r) for r in rows]

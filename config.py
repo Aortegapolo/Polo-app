@@ -9,5 +9,4 @@ DB_NAME     = os.getenv("DB_NAME")
 DB_USER     = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 
-REFRESH_HOUR   = int(os.getenv("REFRESH_HOUR", 6))
-REFRESH_MINUTE = int(os.getenv("REFRESH_MINUTE", 0))
+REFRESH_INTERVAL_MINUTES = int(os.getenv("REFRESH_INTERVAL_MINUTES", 5))

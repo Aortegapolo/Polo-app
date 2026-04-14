@@ -67,21 +67,15 @@ def refresh_all():
 
 def start_scheduler():
     ensure_cache_dir()
-
-    # Ejecutar una vez al arrancar para tener datos desde el primer momento
     refresh_all()
 
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         refresh_all,
-        trigger="cron",
-        hour=config.REFRESH_HOUR,
-        minute=config.REFRESH_MINUTE,
-        id="daily_refresh",
+        trigger="interval",
+        minutes=config.REFRESH_INTERVAL_MINUTES,
+        id="periodic_refresh",
     )
     scheduler.start()
-    logger.info(
-        f"Scheduler iniciado. Actualización diaria a las "
-        f"{config.REFRESH_HOUR:02d}:{config.REFRESH_MINUTE:02d}"
-    )
+    logger.info(f"Scheduler iniciado. Actualización cada {config.REFRESH_INTERVAL_MINUTES} minutos.")
     return scheduler
