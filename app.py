@@ -16,6 +16,10 @@ scheduler = start_scheduler()
 # ── PÁGINAS HTML ──────────────────────────────────────────────────
 
 @app.route("/")
+def menu_page():
+    return send_from_directory(BASE_DIR, "menu.html")
+
+
 @app.route("/accesos")
 def accesos_page():
     return send_from_directory(BASE_DIR, "accesos.html")

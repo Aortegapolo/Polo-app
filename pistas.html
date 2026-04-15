@@ -41,22 +41,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 32px;
+    padding: 12px 32px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
     position: sticky;
     top: 0;
     z-index: 100;
   }
-
-  .logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 26px;
-    letter-spacing: 3px;
-    background: linear-gradient(90deg, var(--red), var(--blue-light));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  .logo-link { display: flex; align-items: center; text-decoration: none; }
+  .logo-img { height: 112px; width: auto; display: block; }
 
   .header-right {
     display: flex;
@@ -103,6 +96,21 @@
     color: var(--text-muted);
     letter-spacing: 0.5px;
   }
+
+  /* NAV */
+  .header-nav { display: flex; align-items: center; gap: 4px; }
+  .nav-link {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .nav-link:hover { color: var(--text); background: var(--surface2); }
+  .nav-link.active { color: var(--red-light); background: var(--red-dim); }
 
   /* LOADING */
   #loading {
@@ -629,10 +637,12 @@
 <body>
 
 <header>
-  <div style="display:flex;align-items:baseline;gap:18px">
-    <div class="logo">REAL CLUB DE POLO DE BARCELONA</div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:var(--text-muted);border-left:1px solid var(--border);padding-left:18px">PISTAS</div>
-  </div>
+  <a href="/" class="logo-link"><img src="/static/logo.png" class="logo-img" alt="Real Club de Polo de Barcelona"></a>
+  <nav class="header-nav">
+    <a href="/accesos" class="nav-link">ACCESOS</a>
+    <a href="/pistas" class="nav-link active">PISTAS</a>
+    <a href="/tickets" class="nav-link">TICKETS</a>
+  </nav>
   <div class="header-right">
     <span class="date-range" id="date-range-label">—</span>
     <div id="filter-badge" onclick="clearAllFilters()">
