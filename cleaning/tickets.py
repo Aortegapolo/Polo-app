@@ -35,6 +35,8 @@ def clean():
         LEFT JOIN user        u  ON t.user_id   = u.id
         LEFT JOIN ticket_area ta ON t.area_id   = ta.id
         LEFT JOIN ticket_type tt ON t.type_id   = tt.id
+        WHERE t.created >= '2026-01-01'
+          AND t.created <= NOW()
     """)
 
     with get_engine().connect() as conn:
