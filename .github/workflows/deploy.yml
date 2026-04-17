@@ -1,0 +1,17 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull y actualizar
+        run: |
+          cd ~/web/Polo-app
+          git pull origin main
+          source ~/web/venv_web/bin/activate
+          pip install -r requirements.txt
+          sudo systemctl restart polo-app
