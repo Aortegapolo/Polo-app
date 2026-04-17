@@ -35,6 +35,11 @@ def tickets_page():
     return send_from_directory(BASE_DIR, "tickets.html")
 
 
+@app.route("/reservas")
+def reservas_page():
+    return send_from_directory(BASE_DIR, "reservas.html")
+
+
 # ── API ───────────────────────────────────────────────────────────
 
 def _serve_cache(filename):
@@ -59,6 +64,11 @@ def api_pistas():
 @app.route("/api/tickets")
 def api_tickets():
     return _serve_cache("tickets.json")
+
+
+@app.route("/api/reservas")
+def api_reservas():
+    return _serve_cache("reservas.json")
 
 
 # ── ARRANQUE ──────────────────────────────────────────────────────

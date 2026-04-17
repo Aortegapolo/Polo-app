@@ -4,7 +4,7 @@ import os
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from cleaning import accesos, pistas, tickets
+from cleaning import accesos, pistas, tickets, reservas
 import config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -59,10 +59,23 @@ def refresh_tickets():
         logger.error(f"Error actualizando tickets: {e}")
 
 
+def refresh_reservas():
+    logger.info("Actualizando reservas...")
+    try:
+        data = reservas.clean()
+        _write_cache("reservas.json", data)
+        logger.info(f"reservas.json actualizado: {len(data['reservas'])} registros")
+        del data
+        gc.collect()
+    except Exception as e:
+        logger.error(f"Error actualizando reservas: {e}")
+
+
 def refresh_all():
     refresh_accesos()
     refresh_pistas()
     refresh_tickets()
+    refresh_reservas()
 
 
 def start_scheduler():

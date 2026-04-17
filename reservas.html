@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Reservas · Club</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E8192C;
+    --red-light: #ff4d5e;
+    --red-dim: rgba(232,25,44,0.15);
+    --blue: #1542E8;
+    --blue-light: #4d6fff;
+    --blue-dim: rgba(21,66,232,0.15);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.15);
+    --orange: #fb923c;
+    --orange-dim: rgba(251,146,60,0.15);
+    --purple: #a855f7;
+    --purple-dim: rgba(168,85,247,0.15);
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f2f8;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --card-radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo-link { display: flex; align-items: center; text-decoration: none; }
+  .logo-img  { height: 112px; width: auto; display: block; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .date-range { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; }
+
+  /* ── NAV ── */
+  .header-nav { display: flex; align-items: center; gap: 4px; }
+  .nav-link {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .nav-link:hover  { color: var(--text); background: var(--surface2); }
+  .nav-link.active { color: var(--red-light); background: var(--red-dim); }
+
+  /* ── LOADING ── */
+  #loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 136px);
+    gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); letter-spacing: 1px; }
+
+  /* ── MAIN ── */
+  #main { display: none; padding: 24px 32px 48px; }
+
+  /* ── KPIs ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .kpi-card.blue::before   { background: var(--blue-light); }
+  .kpi-card.red::before    { background: var(--red); }
+  .kpi-card.orange::before { background: var(--orange); }
+  .kpi-card.purple::before { background: var(--purple); }
+  .kpi-label { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 1.5px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+  .kpi-value { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 1px; line-height: 1; }
+  .kpi-value.blue   { color: var(--blue-light); }
+  .kpi-value.red    { color: var(--red-light); }
+  .kpi-value.orange { color: var(--orange); }
+  .kpi-value.purple { color: var(--purple); }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-family: 'DM Mono', monospace; }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin: 36px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  /* ── RANKINGS ── */
+  .rankings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 8px;
+  }
+  .ranking-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    overflow: hidden;
+  }
+  .ranking-block-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .rank-table { width: 100%; border-collapse: collapse; }
+  .rank-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 8px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .rank-table td {
+    padding: 9px 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  .rank-table tr:last-child td { border-bottom: none; }
+  .rank-table tr:hover td { background: var(--surface2); color: var(--text); }
+  .rank-table td.nsocio  { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); width: 70px; }
+  .rank-table td.nombre  { color: var(--text); }
+  .rank-table td.count   { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--red-light); text-align: right; width: 50px; }
+  .rank-empty { padding: 20px 16px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); text-align: center; }
+
+  /* ── DETALLE POR DÍA ── */
+  .detalle-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .date-input {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .date-input:focus { outline: none; border-color: var(--blue-light); }
+  .day-summary {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+  .toggle-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: auto;
+  }
+  .toggle-btn:hover  { border-color: var(--red-light); color: var(--text); }
+  .toggle-btn.active { border-color: var(--red); color: var(--red-light); background: var(--red-dim); }
+
+  /* ── DETALLE TABLE ── */
+  .detalle-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    overflow: hidden;
+  }
+  .detalle-table { width: 100%; border-collapse: collapse; }
+  .detalle-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .detalle-table td {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .detalle-table tr:last-child td { border-bottom: none; }
+  .detalle-table tr.row-no-ocup td  { background: rgba(232,25,44,0.04); }
+  .detalle-table tr.row-incoh   td  { background: rgba(251,146,60,0.04); }
+  .detalle-table tr:hover td { filter: brightness(1.15); }
+  .detalle-table td.hora   { font-family: 'DM Mono', monospace; font-size: 11px; white-space: nowrap; color: var(--text-muted); }
+  .detalle-table td.pista  { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .detalle-table td.nombre { color: var(--text); }
+  .detalle-table td.nombre .nsocio-tag { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); margin-right: 6px; }
+  .partners-list { display: flex; flex-direction: column; gap: 2px; }
+  .partners-list .partner-row { font-size: 12px; }
+  .partners-list .partner-row .nsocio-tag { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); margin-right: 4px; }
+
+  /* ── CHIPS ── */
+  .chip {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .chip.ocupada    { color: var(--green);      background: var(--green-dim); }
+  .chip.no-ocupada { color: var(--red-light);  background: var(--red-dim); }
+  .chip.incoherente{ color: var(--orange);     background: var(--orange-dim); }
+  .chip.pendiente  { color: var(--text-muted); background: var(--surface2); }
+
+  /* ── RANKING SCROLL ── */
+  .rank-table-wrapper { max-height: 238px; overflow-y: auto; }
+  .rank-table-wrapper .rank-table thead th { position: sticky; top: 0; z-index: 1; background: var(--surface2); }
+
+  .ocupantes-list { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+  .ocupantes-list span { color: var(--text-dim); }
+
+  .detalle-empty {
+    padding: 32px;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── SPORT TOGGLE ── */
+  .sport-toggle { display: flex; align-items: center; gap: 4px; }
+  .sport-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sport-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+  .sport-btn.active { color: var(--red-light); background: var(--red-dim); border-color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo-link"><img src="/static/logo.png" class="logo-img" alt="Real Club de Polo de Barcelona"></a>
+  <nav class="header-nav">
+    <a href="/accesos"  class="nav-link">ACCESOS</a>
+    <a href="/pistas"   class="nav-link">PISTAS</a>
+    <a href="/tickets"  class="nav-link">TICKETS</a>
+    <a href="/reservas" class="nav-link active">RESERVAS</a>
+  </nav>
+  <div class="header-right">
+    <span class="date-range" id="date-range-label">—</span>
+  </div>
+</header>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>CARGANDO DATOS</p>
+</div>
+
+<div id="main">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">RESERVAS ONLINE</div>
+      <div class="kpi-value blue" id="kpi-total">—</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">NO OCUPADAS</div>
+      <div class="kpi-value red" id="kpi-no-ocup-pct">—</div>
+      <div class="kpi-sub" id="kpi-no-ocup">—</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">INCOHERENTES</div>
+      <div class="kpi-value orange" id="kpi-incoh-pct">—</div>
+      <div class="kpi-sub" id="kpi-incoh">—</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">OCP. SIN RESERVA</div>
+      <div class="kpi-value purple" id="kpi-ocp-sin">—</div>
+    </div>
+  </div>
+
+  <!-- Rankings -->
+  <div class="section-header">RANKINGS</div>
+  <div class="sport-toggle" style="margin-bottom:16px">
+    <button class="sport-btn active" id="btn-all"   onclick="setSport('all')">TODOS</button>
+    <button class="sport-btn"        id="btn-Padel" onclick="setSport('Padel')">PÁDEL</button>
+    <button class="sport-btn"        id="btn-Tenis" onclick="setSport('Tenis')">TENIS</button>
+  </div>
+  <div class="rankings-grid">
+
+    <div class="ranking-block">
+      <div class="ranking-block-title">Titular que reserva y no viene nadie <span id="count-titular" style="float:right;color:var(--text-muted)"></span></div>
+      <div class="rank-table-wrapper">
+        <table class="rank-table" id="ranking-titular">
+          <thead><tr><th>N° SOCIO</th><th>NOMBRE</th><th>VECES</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ranking-block">
+      <div class="ranking-block-title">Persona que aparece en reserva y no en ocupación <span id="count-persona" style="float:right;color:var(--text-muted)"></span></div>
+      <div class="rank-table-wrapper">
+        <table class="rank-table" id="ranking-persona">
+          <thead><tr><th>N° SOCIO</th><th>NOMBRE</th><th>VECES</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Detalle por día -->
+  <div class="section-header">
+    DETALLE POR DÍA
+    <span id="section-day-label"></span>
+  </div>
+
+  <div class="detalle-controls">
+    <input type="date" id="date-picker" class="date-input">
+    <span class="day-summary" id="day-summary">—</span>
+    <button class="toggle-btn" id="toggle-solo-problemas" onclick="toggleSoloProblemas()">VER SOLO INCIDENCIAS</button>
+  </div>
+
+  <div class="detalle-wrapper">
+    <table class="detalle-table">
+      <thead>
+        <tr>
+          <th>ID RES.</th>
+          <th>ID OCP.</th>
+          <th>HORA</th>
+          <th>PISTA</th>
+          <th>TITULAR</th>
+          <th>ACOMPAÑANTES</th>
+          <th>ESTADO</th>
+          <th>OCUPANTES REALES</th>
+        </tr>
+      </thead>
+      <tbody id="detalle-tbody"></tbody>
+    </table>
+    <div id="detalle-empty" class="detalle-empty" style="display:none">SIN RESERVAS PARA ESTE DÍA</div>
+  </div>
+
+</div>
+
+<script>
+let DATA          = null;
+let activeSport   = 'all';   // 'all' | 'Padel' | 'Tenis'
+let soloProblemas = false;
+
+fetch('/api/reservas')
+  .then(r => r.json())
+  .then(data => {
+    DATA = data;
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date-picker').value = today;
+    renderAll();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main').style.display    = 'block';
+  })
+  .catch(() => {
+    document.getElementById('loading').innerHTML =
+      '<p style="color:var(--red-light);font-family:\'DM Mono\',monospace;font-size:12px;letter-spacing:1px">ERROR AL CARGAR DATOS</p>';
+  });
+
+/* ── FILTRO DE DEPORTE ── */
+function getFilteredReservas() {
+  if (activeSport === 'all') return DATA.reservas;
+  return DATA.reservas.filter(r => r.cat === activeSport);
+}
+
+function setSport(sport) {
+  activeSport = sport;
+  ['all', 'Padel', 'Tenis'].forEach(s => {
+    document.getElementById('btn-' + s).classList.toggle('active', s === sport);
+  });
+  renderAll();
+}
+
+/* ── RENDER GENERAL ── */
+function renderAll() {
+  const reservas = getFilteredReservas();
+  renderKPIs(reservas);
+  renderRankings(reservas);
+  renderDetalle();
+}
+
+/* ── KPIs ── */
+function renderKPIs(reservas) {
+  const total        = reservas.length;
+  const noOcupadas   = reservas.filter(r => !r.ocupada && r.ha_pasado).length;
+  const incoherentes = reservas.filter(r => r.incoherente).length;
+
+  set('kpi-total',       total.toLocaleString('es-ES'));
+  set('kpi-no-ocup-pct', (total ? (noOcupadas / total * 100).toFixed(1) : '0.0') + '%');
+  set('kpi-no-ocup',     noOcupadas.toLocaleString('es-ES') + ' reservas');
+  set('kpi-incoh-pct',   (total ? (incoherentes / total * 100).toFixed(1) : '0.0') + '%');
+  set('kpi-incoh',       incoherentes.toLocaleString('es-ES') + ' reservas');
+
+  set('kpi-ocp-sin', DATA.kpis.ocp_sin_reserva.toLocaleString('es-ES'));
+
+  if (DATA.reservas.length > 0) {
+    const fechas = DATA.reservas.map(r => r.fecha);
+    set('date-range-label', `${parseFmt(fechas[0])} → ${parseFmt(fechas[fechas.length - 1])}`);
+  }
+}
+
+/* ── RANKINGS ── */
+function renderRankings(reservas) {
+  // ── Ranking titular: no ocupadas ──────────────────────────────
+  const titularMap = {};
+  for (const r of reservas) {
+    if (!r.ocupada && r.ha_pasado) {
+      const key = r.titular_nsocio || '__';
+      if (!titularMap[key]) titularMap[key] = { nsocio: r.titular_nsocio, nombre: r.titular, count: 0 };
+      titularMap[key].count++;
+    }
+  }
+  const allTitular     = Object.values(titularMap).sort((a, b) => b.count - a.count);
+  const rankingTitular = allTitular.slice(0, 20);
+  set('count-titular', `TOP 20 DE ${allTitular.length}`);
+
+  // ── Ranking persona: ausentes en no ocupadas + incoherentes ───
+  // Construir mapa nsocio → nombre desde las reservas filtradas
+  const nsocioNombre = {};
+  for (const r of reservas) {
+    if (r.titular_nsocio) nsocioNombre[r.titular_nsocio] = r.titular;
+    for (let i = 0; i < r.partner_nsocio.length; i++) {
+      if (r.partner_nsocio[i]) nsocioNombre[r.partner_nsocio[i]] = r.partners[i];
+    }
+  }
+
+  const personaMap = {};
+  for (const r of reservas) {
+    if ((!r.ocupada && r.ha_pasado) || r.incoherente) {
+      for (const ns of r.ausentes_nsocio) {
+        if (!personaMap[ns]) personaMap[ns] = { nsocio: ns, nombre: nsocioNombre[ns] || '', count: 0 };
+        personaMap[ns].count++;
+      }
+    }
+  }
+  const allPersona     = Object.values(personaMap).sort((a, b) => b.count - a.count);
+  const rankingPersona = allPersona.slice(0, 20);
+  set('count-persona', `TOP 20 DE ${allPersona.length}`);
+
+  renderRankTable('ranking-titular', rankingTitular);
+  renderRankTable('ranking-persona', rankingPersona);
+}
+
+function renderRankTable(tableId, rows) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" class="rank-empty">SIN DATOS</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r =>
+    `<tr>
+      <td class="nsocio">${r.nsocio || '—'}</td>
+      <td class="nombre">${r.nombre || '—'}</td>
+      <td class="count">${r.count}</td>
+    </tr>`
+  ).join('');
+}
+
+/* ── DETALLE POR DÍA ── */
+function renderDetalle() {
+  const dateStr = document.getElementById('date-picker').value;
+  if (!dateStr) return;
+
+  const [y, m, d] = dateStr.split('-');
+  const fechaFmt  = `${d}-${m}-${y}`;
+  set('section-day-label', fechaFmt);
+
+  let reservas = getFilteredReservas().filter(r => r.fecha === fechaFmt);
+
+  const total    = reservas.length;
+  const problemas = reservas.filter(r => (!r.ocupada && r.ha_pasado) || r.incoherente).length;
+  const ocupadas  = reservas.filter(r => r.ocupada && !r.incoherente).length;
+
+  set('day-summary',
+    total > 0
+      ? `${total} reservas · ${ocupadas} ocupadas · ${problemas} con incidencia`
+      : 'Sin reservas'
+  );
+
+  if (soloProblemas) reservas = reservas.filter(r => (!r.ocupada && r.ha_pasado) || r.incoherente);
+
+  const tbody = document.getElementById('detalle-tbody');
+  const empty = document.getElementById('detalle-empty');
+
+  if (reservas.length === 0) {
+    tbody.innerHTML     = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = reservas.map(r => {
+    const esPendiente = !r.ocupada && !r.ha_pasado;
+    const rowClass = esPendiente ? '' : !r.ocupada ? 'row-no-ocup' : r.incoherente ? 'row-incoh' : '';
+    const chip = esPendiente
+      ? '<span class="chip pendiente">PENDIENTE</span>'
+      : !r.ocupada
+        ? '<span class="chip no-ocupada">NO OCUPADA</span>'
+        : r.incoherente
+          ? '<span class="chip incoherente">INCOHERENTE</span>'
+          : '<span class="chip ocupada">OCUPADA</span>';
+
+    const partnersHtml = r.partners && r.partners.length > 0
+      ? `<div class="partners-list">${r.partners.map((nm, i) =>
+          `<div class="partner-row"><span class="nsocio-tag">${r.partner_nsocio[i] || '—'}</span>${nm}</div>`
+        ).join('')}</div>`
+      : '<span style="color:var(--text-muted);font-size:12px">—</span>';
+
+    const ocupantesHtml = r.ocupantes && r.ocupantes.length > 0
+      ? `<div class="ocupantes-list">${r.ocupantes.map(nm => `<span>${nm}</span>`).join('')}</div>`
+      : '<span style="color:var(--text-muted);font-size:12px">—</span>';
+
+    return `<tr class="${rowClass}">
+      <td class="hora">${r.reserva_id}</td>
+      <td class="hora">${r.id_ocupacion ?? '—'}</td>
+      <td class="hora">${r.checkin} – ${r.checkout}</td>
+      <td class="pista">${r.pista || '—'}</td>
+      <td class="nombre"><span class="nsocio-tag">${r.titular_nsocio || '—'}</span>${r.titular || '—'}</td>
+      <td>${partnersHtml}</td>
+      <td>${chip}</td>
+      <td>${ocupantesHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── TOGGLE SOLO INCIDENCIAS ── */
+function toggleSoloProblemas() {
+  soloProblemas = !soloProblemas;
+  document.getElementById('toggle-solo-problemas').classList.toggle('active', soloProblemas);
+  renderDetalle();
+}
+
+/* ── HELPERS ── */
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function parseFmt(fechaDDMMYYYY) {
+  const [d, m, y] = fechaDDMMYYYY.split('-');
+  return new Date(+y, +m - 1, +d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+document.getElementById('date-picker').addEventListener('change', renderDetalle);
+</script>
+</body>
+</html>

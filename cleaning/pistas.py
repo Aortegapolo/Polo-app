@@ -40,7 +40,7 @@ def clean():
         LEFT JOIN book_reservation_type brt ON bo.type_id    = brt.id
         LEFT JOIN book_reservation  br  ON bo.reservation_id = br.id
         WHERE bc.name IN ('Padel', 'Tenis')
-          AND bo.check_in > DATE_SUB(NOW(), INTERVAL 12 MONTH)
+          AND bo.check_in >= '2026-01-01'
           AND bo.check_in <= NOW()
         ORDER BY bo.check_in ASC
     """)
@@ -61,7 +61,7 @@ def clean():
         LEFT JOIN book_item         bi  ON br.item_id     = bi.id
         LEFT JOIN book_reservation_type brt ON br.type_id = brt.id
         WHERE bc.name IN ('Padel', 'Tenis')
-          AND br.reservation_date > DATE_SUB(NOW(), INTERVAL 12 MONTH)
+          AND br.reservation_date >= '2026-01-01'
           AND br.reservation_date <= NOW()
           AND br.client_id IS NULL
           AND br.id NOT IN (
